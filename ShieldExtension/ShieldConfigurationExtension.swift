@@ -6,7 +6,6 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
 
     private func makeShield() -> ShieldConfiguration {
         ShieldConfiguration(
-            backgroundBlurStyle: .systemMaterialDark,
             backgroundColor: UIColor(red: 0.05, green: 0.05, blue: 0.1, alpha: 0.97),
             icon: UIImage(systemName: "lock.shield.fill")?
                 .withTintColor(UIColor(red: 0.26, green: 0.38, blue: 0.93, alpha: 1), renderingMode: .alwaysOriginal),

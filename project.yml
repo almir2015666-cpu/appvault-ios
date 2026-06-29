@@ -59,7 +59,6 @@ targets:
       - path: ShieldExtension
         includes:
           - ShieldConfigurationExtension.swift
-          - ShieldExtension.entitlements
     info:
       path: ShieldExtension/ShieldConfiguration-Info.plist
       properties:
@@ -72,6 +71,10 @@ targets:
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldConfigurationExtension
     entitlements:
       path: ShieldExtension/ShieldExtension.entitlements
+    dependencies:
+      - sdk: ManagedSettings.framework
+      - sdk: ManagedSettingsUI.framework
+      - sdk: FamilyControls.framework
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.appvault.ShieldConfigurationExtension
@@ -86,7 +89,6 @@ targets:
       - path: ShieldExtension
         includes:
           - ShieldActionExtension.swift
-          - ShieldExtension.entitlements
     info:
       path: ShieldExtension/ShieldAction-Info.plist
       properties:
@@ -99,6 +101,9 @@ targets:
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldActionExtension
     entitlements:
       path: ShieldExtension/ShieldExtension.entitlements
+    dependencies:
+      - sdk: ManagedSettings.framework
+      - sdk: FamilyControls.framework
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.appvault.ShieldActionExtension
