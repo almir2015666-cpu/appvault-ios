@@ -1,5 +1,4 @@
 import ManagedSettings
-import UIKit
 
 final class ShieldActionExtension: ShieldActionDelegate {
 
@@ -18,9 +17,6 @@ final class ShieldActionExtension: ShieldActionDelegate {
     private func handleAction(_ action: ShieldAction, completionHandler: @escaping (ShieldActionResponse) -> Void) {
         switch action {
         case .primaryButtonPressed:
-            if let url = URL(string: "appvault://unlock") {
-                DispatchQueue.main.async { UIApplication.shared.open(url) }
-            }
             completionHandler(.defer)
         case .secondaryButtonPressed:
             completionHandler(.close)
