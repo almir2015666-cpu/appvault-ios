@@ -23,15 +23,11 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         )
     }
 
-    override func configuration(shielding application: ApplicationToken) -> ShieldConfiguration {
+    override func configuration(shielding application: Application) -> ShieldConfiguration {
         makeShield()
     }
 
-    override func configuration(shielding webDomain: WebDomainToken) -> ShieldConfiguration {
-        makeShield()
-    }
-
-    override func configuration(shielding category: ActivityCategoryToken) -> ShieldConfiguration {
+    override func configuration(shielding webDomain: WebDomain) -> ShieldConfiguration {
         makeShield()
     }
 }
