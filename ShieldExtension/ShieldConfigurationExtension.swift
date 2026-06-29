@@ -2,27 +2,20 @@ import ManagedSettings
 import ManagedSettingsUI
 import UIKit
 
-// Exibida quando o usuário tenta abrir um app bloqueado
 final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
 
-    override func configuration(shielding application: Application) -> ShieldConfiguration {
+    private func makeShield() -> ShieldConfiguration {
         ShieldConfiguration(
             backgroundBlurStyle: .systemMaterialDark,
             backgroundColor: UIColor(red: 0.05, green: 0.05, blue: 0.1, alpha: 0.97),
             icon: UIImage(systemName: "lock.shield.fill")?
                 .withTintColor(UIColor(red: 0.26, green: 0.38, blue: 0.93, alpha: 1), renderingMode: .alwaysOriginal),
-            title: ShieldConfiguration.Label(
-                text: "App Bloqueado",
-                color: .white
-            ),
+            title: ShieldConfiguration.Label(text: "App Bloqueado", color: .white),
             subtitle: ShieldConfiguration.Label(
-                text: "Este aplicativo está protegido pelo AppVault",
+                text: "Protegido pelo AppVault",
                 color: UIColor.white.withAlphaComponent(0.6)
             ),
-            primaryButtonLabel: ShieldConfiguration.Label(
-                text: "Inserir Senha",
-                color: .white
-            ),
+            primaryButtonLabel: ShieldConfiguration.Label(text: "Inserir Senha", color: .white),
             primaryButtonBackgroundColor: UIColor(red: 0.26, green: 0.38, blue: 0.93, alpha: 1),
             secondaryButtonLabel: ShieldConfiguration.Label(
                 text: "Cancelar",
@@ -31,5 +24,15 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         )
     }
 
+    override func configuration(shielding application: ApplicationToken) -> ShieldConfiguration {
+        makeShield()
+    }
 
+    override func configuration(shielding webDomain: WebDomainToken) -> ShieldConfiguration {
+        makeShield()
+    }
+
+    override func configuration(shielding category: ActivityCategoryToken) -> ShieldConfiguration {
+        makeShield()
+    }
 }
