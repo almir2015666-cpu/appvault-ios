@@ -73,11 +73,11 @@ final class AppLockService: ObservableObject {
     // MARK: - Lock Application
 
     func applyAllLocks() {
-        var allTokens = Set<ApplicationToken>()
+        var allApps = Set<Application>()
         for group in groups where group.isActive {
-            allTokens.formUnion(group.selection.applicationTokens)
+            allApps.formUnion(group.selection.applications)
         }
-        store.application.blockedApplications = allTokens
+        store.application.blockedApplications = allApps
     }
 
     private func applyLock(for group: LockGroup) {
@@ -99,11 +99,11 @@ final class AppLockService: ObservableObject {
     }
 
     private func applyAllLocksExcluding(groupId: UUID) {
-        var allTokens = Set<ApplicationToken>()
+        var allApps = Set<Application>()
         for group in groups where group.isActive && group.id != groupId {
-            allTokens.formUnion(group.selection.applicationTokens)
+            allApps.formUnion(group.selection.applications)
         }
-        store.application.blockedApplications = allTokens
+        store.application.blockedApplications = allApps
     }
 
     private func reapplyLock(groupId: UUID) {
