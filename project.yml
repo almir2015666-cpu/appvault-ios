@@ -1,0 +1,106 @@
+name: AppVault
+options:
+  bundleIdPrefix: com.appvault
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "15"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    DEVELOPMENT_TEAM: ""  # Preenchido pelo Codemagic via signing
+    TARGETED_DEVICE_FAMILY: "1"
+    SUPPORTS_MAC_DESIGNED_FOR_IPAD: "NO"
+
+targets:
+  AppVault:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: AppVault
+        excludes:
+          - "**/*.entitlements"
+    info:
+      path: AppVault/Info.plist
+      properties:
+        CFBundleDisplayName: AppVault
+        CFBundleName: AppVault
+        CFBundleIdentifier: com.appvault.app
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        LSRequiresIPhoneOS: true
+        UILaunchScreen:
+          UIColorName: "AccentColor"
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        NSFaceIDUsageDescription: "AppVault usa Face ID para desbloquear apps de forma segura."
+        CFBundleURLTypes:
+          - CFBundleURLSchemes:
+              - appvault
+    entitlements:
+      path: AppVault/AppVault.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.appvault.app
+        INFOPLIST_FILE: AppVault/Info.plist
+        CODE_SIGN_STYLE: Manual
+        ENABLE_BITCODE: "NO"
+    dependencies:
+      - target: ShieldConfigurationExtension
+      - target: ShieldActionExtension
+
+  ShieldConfigurationExtension:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: ShieldExtension
+        includes:
+          - ShieldConfigurationExtension.swift
+          - ShieldExtension.entitlements
+    info:
+      path: ShieldExtension/ShieldConfiguration-Info.plist
+      properties:
+        CFBundleDisplayName: ShieldConfigurationExtension
+        CFBundleIdentifier: com.appvault.ShieldConfigurationExtension
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.shieldconfiguration
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldConfigurationExtension
+    entitlements:
+      path: ShieldExtension/ShieldExtension.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.appvault.ShieldConfigurationExtension
+        INFOPLIST_FILE: ShieldExtension/ShieldConfiguration-Info.plist
+        CODE_SIGN_STYLE: Manual
+
+  ShieldActionExtension:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: ShieldExtension
+        includes:
+          - ShieldActionExtension.swift
+          - ShieldExtension.entitlements
+    info:
+      path: ShieldExtension/ShieldAction-Info.plist
+      properties:
+        CFBundleDisplayName: ShieldActionExtension
+        CFBundleIdentifier: com.appvault.ShieldActionExtension
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.shieldaction
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldActionExtension
+    entitlements:
+      path: ShieldExtension/ShieldExtension.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.appvault.ShieldActionExtension
+        INFOPLIST_FILE: ShieldExtension/ShieldAction-Info.plist
+        CODE_SIGN_STYLE: Manual

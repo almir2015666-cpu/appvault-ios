@@ -1,0 +1,99 @@
+workflows:
+  ios-release:
+    name: AppVault - iOS App Store Release
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: appstore_codemagic_admin
+    environment:
+      groups:
+        - appvault
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.appvault.app
+      vars:
+        BUNDLE_ID: com.appvault.app
+        XCODE_SCHEME: AppVault
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+    scripts:
+      - name: Instalar XcodeGen
+        script: brew install xcodegen
+
+      - name: Gerar projeto Xcode
+        script: xcodegen generate
+
+      - name: Buscar certificados e perfis
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE --create
+          app-store-connect fetch-signing-files "com.appvault.ShieldConfigurationExtension" \
+            --type IOS_APP_STORE --create
+          app-store-connect fetch-signing-files "com.appvault.ShieldActionExtension" \
+            --type IOS_APP_STORE --create
+          keychain add-certificates
+
+      - name: Configurar assinatura
+        script: xcode-project use-profiles
+
+      - name: Número de build único
+        script: agvtool new-version -all $(date +%s)
+
+      - name: Build e Archive
+        script: |
+          xcodebuild \
+            -project AppVault.xcodeproj \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Release \
+            -archivePath build/AppVault.xcarchive \
+            -destination "generic/platform=iOS" \
+            archive
+
+      - name: Exportar .ipa
+        script: |
+          xcodebuild \
+            -exportArchive \
+            -archivePath build/AppVault.xcarchive \
+            -exportPath build/export \
+            -exportOptionsPlist ExportOptions.plist
+
+      - name: Enviar para TestFlight
+        script: |
+          app-store-connect publish \
+            --path build/export/*.ipa
+
+    artifacts:
+      - build/export/*.ipa
+      - build/AppVault.xcarchive
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - Testers Internos
+
+  ios-simulator:
+    name: AppVault - Validar Build (Simulador)
+    max_build_duration: 20
+    instance_type: mac_mini_m2
+    scripts:
+      - name: Instalar XcodeGen
+        script: brew install xcodegen
+
+      - name: Gerar projeto Xcode
+        script: xcodegen generate
+
+      - name: Build para Simulador
+        script: |
+          xcodebuild build \
+            -project AppVault.xcodeproj \
+            -scheme AppVault \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO

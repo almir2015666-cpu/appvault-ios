@@ -1,0 +1,35 @@
+# Xcode gerado pelo XcodeGen (não commitar)
+*.xcodeproj/
+*.xcworkspace/
+!*.xcworkspace/contents.xcworkspacedata
+
+# Build
+build/
+DerivedData/
+*.xcarchive
+*.ipa
+
+# CocoaPods
+Pods/
+Podfile.lock
+
+# Xcode user data
+*.xcuserstate
+xcuserdata/
+
+# macOS
+.DS_Store
+
+# Swift Package Manager
+.swiftpm/
+Package.resolved
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Env
+.env
+.env.local

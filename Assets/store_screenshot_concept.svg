@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1290 2796" width="430" height="932">
+  <defs>
+    <linearGradient id="phoneBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0D0D1A"/>
+      <stop offset="100%" stop-color="#12104A"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4361EE"/>
+      <stop offset="100%" stop-color="#7B2FBE"/>
+    </linearGradient>
+    <linearGradient id="cardBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1E1E3A"/>
+      <stop offset="100%" stop-color="#1A1B3A"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Phone background -->
+  <rect width="1290" height="2796" rx="120" fill="url(#phoneBg)"/>
+
+  <!-- Status bar -->
+  <rect x="80" y="60" width="300" height="36" rx="18" fill="#1A1B3A"/>
+  <rect x="960" y="60" width="250" height="36" rx="18" fill="#1A1B3A"/>
+
+  <!-- Title -->
+  <text x="645" y="260" font-family="SF Pro Display, Helvetica Neue, sans-serif"
+        font-size="96" font-weight="700" fill="white" text-anchor="middle">AppVault</text>
+  <text x="645" y="340" font-family="SF Pro Display, Helvetica Neue, sans-serif"
+        font-size="44" fill="#8888BB" text-anchor="middle">Bloqueie qualquer app</text>
+
+  <!-- Stat Cards Row -->
+  <!-- Card 1 -->
+  <rect x="80" y="420" width="540" height="200" rx="40" fill="url(#cardBg)"/>
+  <text x="160" y="510" font-family="SF Pro Display, Helvetica Neue, sans-serif"
+        font-size="36" fill="#8888BB">Grupos Ativos</text>
+  <text x="160" y="590" font-family="SF Pro Display, Helvetica Neue, sans-serif"
+        font-size="80" font-weight="700" fill="white">3</text>
+
+  <!-- Card 2 -->
+  <rect x="668" y="420" width="542" height="200" rx="40" fill="url(#cardBg)"/>
+  <text x="748" y="510" font-family="SF Pro Display, Helvetica Neue, sans-serif"
+        font-size="36" fill="#8888BB">Apps Bloqueados</text>
+  <text x="748" y="590" font-family="SF Pro Display, Helvetica Neue, sans-serif"
+        font-size="80" font-weight="700" fill="white">12</text>
+
+  <!-- Lock Group Cards -->
+  <!-- Social Media -->
+  <rect x="80" y="680" width="1130" height="180" rx="40" fill="url(#cardBg)"/>
+  <rect x="80" y="680" width="1130" height="180" rx="40" fill="none"
+        stroke="#4361EE" stroke-width="3" opacity="0.4"/>
+  <!-- Icon circle -->
+  <circle cx="200" cy="770" r="60" fill="#4361EE" opacity="0.2"/>
+  <text x="200" y="785" font-family="SF Pro Display, Helvetica Neue, sans-serif"
+        font-size="44" text-anchor="middle" fill="#4361EE">󰋙</text>
+  <text x="316" y="750" font-family="SF Pro Display, Helvetica Neue, sans-serif"
+        font-size="42" font-weight="600" fill="white">Redes Sociais</text>
+  <text x="316" y="810" font-family="SF Pro Display, Helvetica Neue, sans-serif"
+        font-size="34" fill="#8888BB">5 apps bloqueados</text>
+  <!-- Toggle ON -->
+  <rect x="1050" y="735" width="110" height="60" rx="30" fill="#4361EE"/>
+  <circle cx="1130" cy="765" r="24" fill="white"/>
+
+  <!-- Games -->
+  <rect x="80" y="920" width="1130" height="180" rx="40" fill="url(#cardBg)"/>
+  <circle cx="200" cy="1010" r="60" fill="#FF6B35" opacity="0.2"/>
+  <text x="316" y="990" font-family="SF Pro Display, Helvetica Neue, sans-serif"
+        font-size="42" font-weight="600" fill="white">Jogos</text>
+  <text x="316" y="1050" font-family="SF Pro Display, Helvetica Neue, sans-serif"
+        font-size="34" fill="#8888BB">4 apps bloqueados</text>
+  <rect x="1050" y="975" width="110" height="60" rx="30" fill="#FF6B35"/>
+  <circle cx="1130" cy="1005" r="24" fill="white"/>
+
+  <!-- Entertainment -->
+  <rect x="80" y="1160" width="1130" height="180" rx="40" fill="url(#cardBg)"/>
+  <circle cx="200" cy="1250" r="60" fill="#7B2FBE" opacity="0.2"/>
+  <text x="316" y="1230" font-family="SF Pro Display, Helvetica Neue, sans-serif"
+        font-size="42" font-weight="600" fill="white">Entretenimento</text>
+  <text x="316" y="1290" font-family="SF Pro Display, Helvetica Neue, sans-serif"
+        font-size="34" fill="#8888BB">3 apps bloqueados</text>
+  <rect x="1050" y="1215" width="110" height="60" rx="30" fill="#7B2FBE"/>
+  <circle cx="1130" cy="1245" r="24" fill="white"/>
+
+  <!-- Add Button -->
+  <rect x="80" y="1420" width="1130" height="160" rx="40" fill="url(#accentGrad)"/>
+  <text x="645" y="1520" font-family="SF Pro Display, Helvetica Neue, sans-serif"
+        font-size="48" font-weight="600" fill="white" text-anchor="middle">+ Novo Grupo</text>
+
+  <!-- Bottom section: Marketing text -->
+  <text x="645" y="1720" font-family="SF Pro Display, Helvetica Neue, sans-serif"
+        font-size="60" font-weight="700" fill="white" text-anchor="middle">Senhas</text>
+  <text x="645" y="1800" font-family="SF Pro Display, Helvetica Neue, sans-serif"
+        font-size="60" font-weight="700" text-anchor="middle">
+    <tspan fill="url(#accentGrad)">diferentes</tspan>
+  </text>
+  <text x="645" y="1880" font-family="SF Pro Display, Helvetica Neue, sans-serif"
+        font-size="60" font-weight="700" fill="white" text-anchor="middle">para cada app</text>
+
+  <text x="645" y="1980" font-family="SF Pro Display, Helvetica Neue, sans-serif"
+        font-size="38" fill="#8888BB" text-anchor="middle">Proteja o que é seu com</text>
+  <text x="645" y="2040" font-family="SF Pro Display, Helvetica Neue, sans-serif"
+        font-size="38" fill="#8888BB" text-anchor="middle">PIN, Face ID ou Touch ID</text>
+
+  <!-- Shield illustration at bottom -->
+  <g transform="translate(645, 2350)">
+    <path d="M0,-200 L160,-130 L160,60 Q160,200 0,280 Q-160,200 -160,60 L-160,-130 Z"
+          fill="url(#accentGrad)" opacity="0.15"/>
+    <path d="M0,-200 L160,-130 L160,60 Q160,200 0,280 Q-160,200 -160,60 L-160,-130 Z"
+          fill="none" stroke="url(#accentGrad)" stroke-width="8"/>
+    <!-- Lock icon in shield -->
+    <path d="M-50,20 Q-50,-40 0,-40 Q50,-40 50,20 L50,40 L-50,40 Z"
+          fill="none" stroke="white" stroke-width="16" stroke-linecap="round"/>
+    <rect x="-70" y="35" width="140" height="100" rx="20" fill="white" opacity="0.9"/>
+    <circle cx="0" cy="80" r="18" fill="#0D0D1A"/>
+    <rect x="-8" y="90" width="16" height="26" rx="5" fill="#0D0D1A"/>
+  </g>
+</svg>
