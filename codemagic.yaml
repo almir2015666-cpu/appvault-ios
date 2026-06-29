@@ -3,15 +3,13 @@ workflows:
     name: AppVault - iOS App Store Release
     max_build_duration: 60
     instance_type: mac_mini_m2
-    integrations:
-      app_store_connect: appstore_codemagic_admin
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.appvault.app
+      groups:
+        - nutri
       vars:
         BUNDLE_ID: com.appvault.app
         XCODE_SCHEME: AppVault
+        APPLE_TEAM_ID: 66U94U6Q5H
     triggering:
       events:
         - push
@@ -25,15 +23,24 @@ workflows:
       - name: Gerar projeto Xcode
         script: xcodegen generate
 
-      - name: Buscar certificados e perfis
+      - name: Configurar keychain e certificados
         script: |
           keychain initialize
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE --create
+            --type IOS_APP_STORE --create \
+            --api-key "$APP_STORE_CONNECT_API_KEY" \
+            --key-id "$APP_STORE_CONNECT_KEY_ID" \
+            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID"
           app-store-connect fetch-signing-files "com.appvault.ShieldConfigurationExtension" \
-            --type IOS_APP_STORE --create
+            --type IOS_APP_STORE --create \
+            --api-key "$APP_STORE_CONNECT_API_KEY" \
+            --key-id "$APP_STORE_CONNECT_KEY_ID" \
+            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID"
           app-store-connect fetch-signing-files "com.appvault.ShieldActionExtension" \
-            --type IOS_APP_STORE --create
+            --type IOS_APP_STORE --create \
+            --api-key "$APP_STORE_CONNECT_API_KEY" \
+            --key-id "$APP_STORE_CONNECT_KEY_ID" \
+            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID"
           keychain add-certificates
 
       - name: Configurar assinatura
@@ -50,6 +57,7 @@ workflows:
             -configuration Release \
             -archivePath build/AppVault.xcarchive \
             -destination "generic/platform=iOS" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             archive
 
       - name: Exportar .ipa
@@ -60,18 +68,15 @@ workflows:
             -exportPath build/export \
             -exportOptionsPlist ExportOptions.plist
 
-      - name: Enviar para TestFlight
-        script: |
-          app-store-connect publish \
-            --path build/export/*.ipa
-
     artifacts:
       - build/export/*.ipa
       - build/AppVault.xcarchive
 
     publishing:
       app_store_connect:
-        auth: integration
+        api_key: $APP_STORE_CONNECT_API_KEY
+        key_id: $APP_STORE_CONNECT_KEY_ID
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
 
   ios-simulator:
