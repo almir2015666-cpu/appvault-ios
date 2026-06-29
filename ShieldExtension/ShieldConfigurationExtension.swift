@@ -31,7 +31,5 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         )
     }
 
-    override func configuration(shielding application: Application, in category: ActivityCategory) -> ShieldConfiguration {
-        configuration(shielding: application)
-    }
+
 }

@@ -23,10 +23,6 @@ final class ShieldActionExtension: ShieldActionDelegate {
         }
     }
 
-    override func handle(action: ShieldAction, for application: Application, in category: ActivityCategory, completionHandler: @escaping (ShieldActionResponse) -> Void) {
-        handle(action: action, for: application, completionHandler: completionHandler)
-    }
-
     private func open(_ url: URL) {
         var responder: UIResponder? = UIApplication.shared
         while let current = responder {
