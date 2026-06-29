@@ -63,7 +63,7 @@ targets:
       path: ShieldExtension/ShieldConfiguration-Info.plist
       properties:
         CFBundleDisplayName: ShieldConfigurationExtension
-        CFBundleIdentifier: com.appvault.ShieldConfigurationExtension
+        CFBundleIdentifier: com.appvault.app.ShieldConfigurationExtension
         CFBundleShortVersionString: "1.0"
         CFBundleVersion: "1"
         NSExtension:
@@ -77,7 +77,7 @@ targets:
       - sdk: FamilyControls.framework
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.appvault.ShieldConfigurationExtension
+        PRODUCT_BUNDLE_IDENTIFIER: com.appvault.app.ShieldConfigurationExtension
         INFOPLIST_FILE: ShieldExtension/ShieldConfiguration-Info.plist
         CODE_SIGN_STYLE: Manual
 
@@ -93,7 +93,7 @@ targets:
       path: ShieldExtension/ShieldAction-Info.plist
       properties:
         CFBundleDisplayName: ShieldActionExtension
-        CFBundleIdentifier: com.appvault.ShieldActionExtension
+        CFBundleIdentifier: com.appvault.app.ShieldActionExtension
         CFBundleShortVersionString: "1.0"
         CFBundleVersion: "1"
         NSExtension:
@@ -106,6 +106,6 @@ targets:
       - sdk: FamilyControls.framework
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.appvault.ShieldActionExtension
+        PRODUCT_BUNDLE_IDENTIFIER: com.appvault.app.ShieldActionExtension
         INFOPLIST_FILE: ShieldExtension/ShieldAction-Info.plist
         CODE_SIGN_STYLE: Manual

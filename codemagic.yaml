@@ -31,12 +31,12 @@ workflows:
             --api-key "$APP_STORE_CONNECT_API_KEY" \
             --key-id "$APP_STORE_CONNECT_KEY_ID" \
             --issuer-id "$APP_STORE_CONNECT_ISSUER_ID"
-          app-store-connect fetch-signing-files "com.appvault.ShieldConfigurationExtension" \
+          app-store-connect fetch-signing-files "com.appvault.app.ShieldConfigurationExtension" \
             --type IOS_APP_STORE --create \
             --api-key "$APP_STORE_CONNECT_API_KEY" \
             --key-id "$APP_STORE_CONNECT_KEY_ID" \
             --issuer-id "$APP_STORE_CONNECT_ISSUER_ID"
-          app-store-connect fetch-signing-files "com.appvault.ShieldActionExtension" \
+          app-store-connect fetch-signing-files "com.appvault.app.ShieldActionExtension" \
             --type IOS_APP_STORE --create \
             --api-key "$APP_STORE_CONNECT_API_KEY" \
             --key-id "$APP_STORE_CONNECT_KEY_ID" \
