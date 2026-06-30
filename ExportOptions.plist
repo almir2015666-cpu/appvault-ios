@@ -4,26 +4,13 @@
 <dict>
     <key>method</key>
     <string>app-store-connect</string>
-    <key>destination</key>
-    <string>upload</string>
     <key>teamID</key>
-    <string>$(DEVELOPMENT_TEAM)</string>
+    <string>66U94U6Q5H</string>
     <key>signingStyle</key>
     <string>manual</string>
     <key>stripSwiftSymbols</key>
     <true/>
-    <key>uploadBitcode</key>
-    <false/>
     <key>uploadSymbols</key>
     <true/>
-    <key>provisioningProfiles</key>
-    <dict>
-        <key>com.appvault.app</key>
-        <string>match AppStore com.appvault.app</string>
-        <key>com.appvault.ShieldConfigurationExtension</key>
-        <string>match AppStore com.appvault.ShieldConfigurationExtension</string>
-        <key>com.appvault.ShieldActionExtension</key>
-        <string>match AppStore com.appvault.ShieldActionExtension</string>
-    </dict>
 </dict>
 </plist>
