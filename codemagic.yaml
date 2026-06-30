@@ -6,9 +6,6 @@ workflows:
     integrations:
       app_store_connect: appstore_codemagic_admin
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.appvault.app
       vars:
         BUNDLE_ID: com.appvault.app
         XCODE_SCHEME: AppVault
@@ -26,9 +23,12 @@ workflows:
       - name: Gerar projeto Xcode
         script: xcodegen generate
 
-      - name: Configurar keychain
+      - name: Configurar keychain e certificados
         script: |
           keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          app-store-connect fetch-signing-files "com.appvault.app.ShieldConfigurationExtension" --type IOS_APP_STORE --create
+          app-store-connect fetch-signing-files "com.appvault.app.ShieldActionExtension" --type IOS_APP_STORE --create
           keychain add-certificates
 
       - name: Configurar assinatura
@@ -48,7 +48,6 @@ workflows:
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
-            DEVELOPMENT_TEAM=66U94U6Q5H \
             archive
 
       - name: Exportar .ipa
