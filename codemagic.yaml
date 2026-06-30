@@ -6,6 +6,8 @@ workflows:
     integrations:
       app_store_connect: appstore_codemagic_admin
     environment:
+      groups:
+        - appvault
       vars:
         BUNDLE_ID: com.appvault.app
         XCODE_SCHEME: AppVault
