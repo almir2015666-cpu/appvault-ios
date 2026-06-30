@@ -30,7 +30,7 @@ workflows:
           openssl genrsa -out /tmp/dist_key.pem 2048
           app-store-connect certificates create \
             --type IOS_DISTRIBUTION \
-            --certificate-key /tmp/dist_key.pem \
+            --certificate-key "$(cat /tmp/dist_key.pem)" \
             --p12-password "appvault2024"
           # Buscar/criar perfis de provisionamento
           app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
