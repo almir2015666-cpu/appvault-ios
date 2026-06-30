@@ -26,16 +26,24 @@ workflows:
       - name: Configurar keychain e certificados
         script: |
           keychain initialize
-          # Gerar chave privada RSA e criar certificado de distribuição novo
+          # Gerar chave privada RSA
           openssl genrsa -out /tmp/dist_key.pem 2048
+          export CERT_KEY="$(cat /tmp/dist_key.pem)"
+          # Criar certificado e salvar .p12 no local que keychain add-certificates encontra
+          mkdir -p ~/Library/MobileDevice/Certificates
           app-store-connect certificates create \
             --type IOS_DISTRIBUTION \
-            --certificate-key "$(cat /tmp/dist_key.pem)" \
-            --p12-password "appvault2024"
-          # Buscar/criar perfis de provisionamento
-          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
-          app-store-connect fetch-signing-files "com.appvault.app.ShieldConfigurationExtension" --type IOS_APP_STORE --create
-          app-store-connect fetch-signing-files "com.appvault.app.ShieldActionExtension" --type IOS_APP_STORE --create
+            --certificate-key "$CERT_KEY" \
+            --p12-password "appvault2024" \
+            --p12-path ~/Library/MobileDevice/Certificates/distribution.p12
+          # Buscar/criar perfis passando a chave privada (evita erro "no private key")
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE --create --certificate-key "$CERT_KEY"
+          app-store-connect fetch-signing-files "com.appvault.app.ShieldConfigurationExtension" \
+            --type IOS_APP_STORE --create --certificate-key "$CERT_KEY"
+          app-store-connect fetch-signing-files "com.appvault.app.ShieldActionExtension" \
+            --type IOS_APP_STORE --create --certificate-key "$CERT_KEY"
+          # Importar certificado no keychain
           keychain add-certificates --certificate-password "appvault2024"
 
       - name: Configurar assinatura
