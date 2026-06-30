@@ -30,7 +30,12 @@ targets:
         CFBundleIdentifier: com.appvault.app
         CFBundleShortVersionString: "1.0"
         CFBundleVersion: "1"
+        CFBundleIconName: AppIcon
         LSRequiresIPhoneOS: true
+        UIDeviceFamily:
+          - 1
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
         UILaunchScreen:
           UIColorName: "AccentColor"
         UIApplicationSceneManifest:
