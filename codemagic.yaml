@@ -35,19 +35,19 @@ workflows:
             --certificate-key "$DIST_CERT_KEY" \
             --p12-password "appvault2024" \
             --p12-path ~/Library/MobileDevice/Certificates/distribution.p12 || true
-          # Buscar/criar perfis e salvar .p12 do cert no local correto
+          # Buscar/criar perfis (delete-stale-profiles remove perfis com cert revogado)
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE --create \
+            --type IOS_APP_STORE --create --delete-stale-profiles \
             --certificate-key "$DIST_CERT_KEY" \
             --p12-password "appvault2024" \
             --certificates-dir ~/Library/MobileDevice/Certificates/
           app-store-connect fetch-signing-files "com.appvault.app.ShieldConfigurationExtension" \
-            --type IOS_APP_STORE --create \
+            --type IOS_APP_STORE --create --delete-stale-profiles \
             --certificate-key "$DIST_CERT_KEY" \
             --p12-password "appvault2024" \
             --certificates-dir ~/Library/MobileDevice/Certificates/
           app-store-connect fetch-signing-files "com.appvault.app.ShieldActionExtension" \
-            --type IOS_APP_STORE --create \
+            --type IOS_APP_STORE --create --delete-stale-profiles \
             --certificate-key "$DIST_CERT_KEY" \
             --p12-password "appvault2024" \
             --certificates-dir ~/Library/MobileDevice/Certificates/
