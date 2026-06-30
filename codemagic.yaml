@@ -26,24 +26,29 @@ workflows:
       - name: Configurar keychain e certificados
         script: |
           keychain initialize
-          # Gerar chave privada RSA
-          openssl genrsa -out /tmp/dist_key.pem 2048
-          export CERT_KEY="$(cat /tmp/dist_key.pem)"
-          # Criar certificado e salvar .p12 no local que keychain add-certificates encontra
           mkdir -p ~/Library/MobileDevice/Certificates
+          # Criar cert com a chave permanente (|| true caso já exista 409)
           app-store-connect certificates create \
             --type IOS_DISTRIBUTION \
-            --certificate-key "$CERT_KEY" \
+            --certificate-key "$DIST_CERT_KEY" \
             --p12-password "appvault2024" \
-            --p12-path ~/Library/MobileDevice/Certificates/distribution.p12
-          # Buscar/criar perfis passando a chave privada (evita erro "no private key")
+            --p12-path ~/Library/MobileDevice/Certificates/distribution.p12 || true
+          # Buscar/criar perfis e salvar .p12 do cert no local correto
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE --create --certificate-key "$CERT_KEY"
+            --type IOS_APP_STORE --create \
+            --certificate-key "$DIST_CERT_KEY" \
+            --p12-password "appvault2024" \
+            --certificates-dir ~/Library/MobileDevice/Certificates/
           app-store-connect fetch-signing-files "com.appvault.app.ShieldConfigurationExtension" \
-            --type IOS_APP_STORE --create --certificate-key "$CERT_KEY"
+            --type IOS_APP_STORE --create \
+            --certificate-key "$DIST_CERT_KEY" \
+            --p12-password "appvault2024" \
+            --certificates-dir ~/Library/MobileDevice/Certificates/
           app-store-connect fetch-signing-files "com.appvault.app.ShieldActionExtension" \
-            --type IOS_APP_STORE --create --certificate-key "$CERT_KEY"
-          # Importar certificado no keychain
+            --type IOS_APP_STORE --create \
+            --certificate-key "$DIST_CERT_KEY" \
+            --p12-password "appvault2024" \
+            --certificates-dir ~/Library/MobileDevice/Certificates/
           keychain add-certificates --certificate-password "appvault2024"
 
       - name: Configurar assinatura
