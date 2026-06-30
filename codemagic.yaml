@@ -35,19 +35,31 @@ workflows:
             --certificate-key "$DIST_CERT_KEY" \
             --p12-password "appvault2024" \
             --p12-path ~/Library/MobileDevice/Certificates/distribution.p12 || true
-          # Buscar/criar perfis (delete-stale-profiles remove perfis com cert revogado)
+          # Deletar perfis antigos para recriar com o novo certificado
+          for bid in "$BUNDLE_ID" "com.appvault.app.ShieldConfigurationExtension" "com.appvault.app.ShieldActionExtension"; do
+            profile_ids=$(app-store-connect profiles list \
+              --bundle-id-identifier "$bid" \
+              --profile-type IOS_APP_STORE \
+              --json 2>/dev/null | \
+              python3 -c "import json,sys; [print(x['id']) for x in json.load(sys.stdin)]" 2>/dev/null || true)
+            for pid in $profile_ids; do
+              echo "Deletando perfil $pid"
+              app-store-connect profiles delete "$pid" 2>/dev/null || true
+            done
+          done
+          # Criar perfis novos com o certificado atual
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE --create --delete-stale-profiles \
+            --type IOS_APP_STORE --create \
             --certificate-key "$DIST_CERT_KEY" \
             --p12-password "appvault2024" \
             --certificates-dir ~/Library/MobileDevice/Certificates/
           app-store-connect fetch-signing-files "com.appvault.app.ShieldConfigurationExtension" \
-            --type IOS_APP_STORE --create --delete-stale-profiles \
+            --type IOS_APP_STORE --create \
             --certificate-key "$DIST_CERT_KEY" \
             --p12-password "appvault2024" \
             --certificates-dir ~/Library/MobileDevice/Certificates/
           app-store-connect fetch-signing-files "com.appvault.app.ShieldActionExtension" \
-            --type IOS_APP_STORE --create --delete-stale-profiles \
+            --type IOS_APP_STORE --create \
             --certificate-key "$DIST_CERT_KEY" \
             --p12-password "appvault2024" \
             --certificates-dir ~/Library/MobileDevice/Certificates/
