@@ -27,11 +27,11 @@ workflows:
         script: |
           keychain initialize
           # Cria novo certificado com chave privada gerada no Codemagic
-          app-store-connect certificates create --type IOS_DISTRIBUTION --save || true
+          app-store-connect certificates create --type IOS_DISTRIBUTION || true
           # Busca/cria perfis de provisionamento
-          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create --save
-          app-store-connect fetch-signing-files "com.appvault.app.ShieldConfigurationExtension" --type IOS_APP_STORE --create --save
-          app-store-connect fetch-signing-files "com.appvault.app.ShieldActionExtension" --type IOS_APP_STORE --create --save
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          app-store-connect fetch-signing-files "com.appvault.app.ShieldConfigurationExtension" --type IOS_APP_STORE --create
+          app-store-connect fetch-signing-files "com.appvault.app.ShieldActionExtension" --type IOS_APP_STORE --create
           keychain add-certificates
 
       - name: Configurar assinatura
