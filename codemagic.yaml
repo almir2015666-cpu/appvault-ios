@@ -26,13 +26,17 @@ workflows:
       - name: Configurar keychain e certificados
         script: |
           keychain initialize
-          # Cria novo certificado com chave privada gerada no Codemagic
-          app-store-connect certificates create --type IOS_DISTRIBUTION || true
-          # Busca/cria perfis de provisionamento
+          # Gerar chave privada RSA e criar certificado de distribuição novo
+          openssl genrsa -out /tmp/dist_key.pem 2048
+          app-store-connect certificates create \
+            --type IOS_DISTRIBUTION \
+            --certificate-key /tmp/dist_key.pem \
+            --p12-password "appvault2024"
+          # Buscar/criar perfis de provisionamento
           app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
           app-store-connect fetch-signing-files "com.appvault.app.ShieldConfigurationExtension" --type IOS_APP_STORE --create
           app-store-connect fetch-signing-files "com.appvault.app.ShieldActionExtension" --type IOS_APP_STORE --create
-          keychain add-certificates
+          keychain add-certificates --certificate-password "appvault2024"
 
       - name: Configurar assinatura
         script: xcode-project use-profiles
