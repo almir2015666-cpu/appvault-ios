@@ -67,6 +67,44 @@ workflows:
 
       - name: Exportar .ipa
         script: |
+          # Gerar ExportOptions.plist com nomes reais dos perfis instalados
+          python3 - << 'PYEOF'
+          import subprocess, plistlib, glob, os, sys
+
+          provisioning = {}
+          for d in [
+            "~/Library/MobileDevice/Provisioning Profiles",
+            "~/Library/Developer/Xcode/UserData/Provisioning Profiles"
+          ]:
+            for f in glob.glob(os.path.expanduser(d + "/*.mobileprovision")):
+              r = subprocess.run(["security", "cms", "-D", "-i", f], capture_output=True)
+              if r.returncode != 0:
+                continue
+              pl = plistlib.loads(r.stdout)
+              bid = pl.get("Entitlements", {}).get("application-identifier", "")
+              bid = ".".join(bid.split(".")[1:]) if "." in bid else ""
+              name = pl.get("Name", "")
+              if bid and name and "appvault" in bid.lower():
+                provisioning[bid] = name
+                print(f"  {bid} -> {name}", flush=True)
+
+          if not provisioning:
+            print("ERRO: nenhum perfil encontrado!", file=sys.stderr)
+            sys.exit(1)
+
+          opts = {
+            "method": "app-store-connect",
+            "teamID": "66U94U6Q5H",
+            "signingStyle": "manual",
+            "stripSwiftSymbols": True,
+            "uploadSymbols": True,
+            "provisioningProfiles": provisioning
+          }
+          with open("ExportOptions.plist", "wb") as fh:
+            plistlib.dump(opts, fh)
+          print(f"ExportOptions.plist gerado com {len(provisioning)} perfis", flush=True)
+          PYEOF
+
           xcodebuild \
             -exportArchive \
             -archivePath build/AppVault.xcarchive \
