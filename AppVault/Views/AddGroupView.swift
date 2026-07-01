@@ -3,218 +3,115 @@ import SwiftUI
 struct AddGroupView: View {
     @EnvironmentObject var lockService: AppLockService
     @Environment(\.dismiss) var dismiss
+    @FocusState private var nameFocused: Bool
 
     @State private var groupName = ""
-    @State private var selectedColorHex = "#4361EE"
-    @State private var selectedIcon = "lock.shield.fill"
-    @State private var selectedPreset: Int? = nil
     @State private var selection = AppSelection()
     @State private var showAppPicker = false
-    @State private var lockType = LockGroup.LockType.pin4
     @State private var step = 0
 
-    @EnvironmentObject var authService: AuthService
-
-    private let colors = ["#4361EE", "#7B2FBE", "#E91E8C", "#FF6B35", "#06D6A0", "#FF6B6B", "#FFD700", "#00B4D8"]
-    private let icons = ["lock.shield.fill", "lock.fill", "key.fill", "shield.fill",
-                         "eye.slash.fill", "hand.raised.fill", "exclamationmark.shield.fill", "checkmark.shield.fill"]
+    private let palette = ["#6C63FF","#FF6B6B","#00C9A7","#FF9F43","#48DBFB","#FF6B9D","#54A0FF","#5F27CD"]
+    private var autoColor: String { palette[lockService.groups.count % palette.count] }
+    private var canContinue: Bool { !groupName.trimmingCharacters(in: .whitespaces).isEmpty && !selection.appNames.isEmpty }
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.vaultBackground.ignoresSafeArea()
-                content
+                if step == 0 { setupStep } else { pinStep }
             }
-            .navigationTitle(step == 0 ? "Novo Grupo" : "Definir PIN")
+            .navigationTitle(step == 0 ? "Novo Grupo" : "Criar Senha")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancelar") { dismiss() }
-                        .foregroundColor(.gray)
+                    Button("Cancelar") { dismiss() }.foregroundColor(.vaultMuted)
                 }
             }
         }
+        .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { nameFocused = true } }
     }
 
-    @ViewBuilder
-    private var content: some View {
-        if step == 0 {
-            groupSetupStep
-        } else {
-            PinSetupView(
-                groupName: groupName,
-                lockType: lockType,
-                onComplete: { newPin in saveGroup(pin: newPin) },
-                onBack: { step = 0 }
-            )
-        }
-    }
+    // MARK: - Step 1: Nome + Apps
 
-    private var groupSetupStep: some View {
-        ScrollView {
-            VStack(spacing: 28) {
-                previewCard
-                nameField
-                presetSection
-                colorSection
-                iconSection
-                appsSection
-                lockTypeSection
-                continueButton
+    private var setupStep: some View {
+        VStack(spacing: 0) {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 24) {
+                    nameField
+                    appPickerButton
+                }
+                .padding(24)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 20)
+            bottomBar
         }
-    }
-
-    private var previewCard: some View {
-        HStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(Color(hex: selectedColorHex).opacity(0.18))
-                    .frame(width: 60, height: 60)
-                Image(systemName: selectedIcon)
-                    .font(.system(size: 26, weight: .semibold))
-                    .foregroundColor(Color(hex: selectedColorHex))
-            }
-            VStack(alignment: .leading, spacing: 4) {
-                Text(groupName.isEmpty ? "Nome do Grupo" : groupName)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(groupName.isEmpty ? .gray : .white)
-                Text("\(selection.count) app\(selection.count == 1 ? "" : "s") selecionado\(selection.count == 1 ? "" : "s")")
-                    .font(.system(size: 13))
-                    .foregroundColor(.white.opacity(0.5))
-            }
-            Spacer()
-        }
-        .padding(20)
-        .background(Color.vaultCard)
-        .cornerRadius(20)
-        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color(hex: selectedColorHex).opacity(0.3), lineWidth: 1.5))
     }
 
     private var nameField: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label("Nome do Grupo", systemImage: "textformat")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(.white.opacity(0.5))
+        VStack(alignment: .leading, spacing: 10) {
+            label("Nome do grupo")
             TextField("Ex: Redes Sociais", text: $groupName)
-                .font(.system(size: 16))
+                .font(.system(size: 17, weight: .medium))
                 .foregroundColor(.white)
-                .padding(14)
-                .background(Color.vaultCard)
-                .cornerRadius(12)
+                .padding(18)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color.vaultCard)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(nameFocused ? Color.vaultAccent.opacity(0.6) : Color.vaultCardBorder, lineWidth: 1.5)
+                        )
+                )
+                .focused($nameFocused)
         }
     }
 
-    private var presetSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Presets", systemImage: "sparkles")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(.white.opacity(0.5))
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(Array(LockGroup.presets.enumerated()), id: \.offset) { index, preset in
-                        Button {
-                            selectedPreset = index
-                            groupName = preset.name
-                            selectedColorHex = preset.color
-                            selectedIcon = preset.icon
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: preset.icon)
-                                    .font(.system(size: 13))
-                                Text(preset.name)
-                                    .font(.system(size: 13, weight: .medium))
-                            }
-                            .foregroundColor(selectedPreset == index ? .white : .white.opacity(0.6))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(selectedPreset == index ? Color(hex: preset.color) : Color.vaultCard)
-                            .cornerRadius(20)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-        }
-    }
-
-    private var colorSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Cor", systemImage: "paintpalette")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(.white.opacity(0.5))
-            HStack(spacing: 10) {
-                ForEach(colors, id: \.self) { hex in
-                    Button {
-                        selectedColorHex = hex
-                        selectedPreset = nil
-                    } label: {
-                        Circle()
-                            .fill(Color(hex: hex))
-                            .frame(width: 36, height: 36)
-                            .overlay(
-                                Circle()
-                                    .stroke(.white, lineWidth: selectedColorHex == hex ? 3 : 0)
-                                    .padding(3)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
-
-    private var iconSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Ícone", systemImage: "square.grid.2x2")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(.white.opacity(0.5))
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 8), spacing: 10) {
-                ForEach(icons, id: \.self) { icon in
-                    Button {
-                        selectedIcon = icon
-                    } label: {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(selectedIcon == icon ? Color(hex: selectedColorHex).opacity(0.2) : Color.vaultCard)
-                                .frame(width: 40, height: 40)
-                            Image(systemName: icon)
-                                .font(.system(size: 18))
-                                .foregroundColor(selectedIcon == icon ? Color(hex: selectedColorHex) : .white.opacity(0.5))
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
-
-    private var appsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Aplicativos", systemImage: "apps.iphone")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(.white.opacity(0.5))
+    private var appPickerButton: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            label("Aplicativos")
             Button {
+                nameFocused = false
                 showAppPicker = true
             } label: {
-                HStack {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundColor(Color(hex: selectedColorHex))
-                    Text(selection.appNames.isEmpty
-                         ? "Selecionar Aplicativos"
-                         : "Alterar Seleção (\(selection.count) apps)")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(.white)
+                HStack(spacing: 14) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(selection.appNames.isEmpty ? Color.vaultAccent.opacity(0.1) : Color.vaultAccent.opacity(0.15))
+                            .frame(width: 46, height: 46)
+                        Image(systemName: selection.appNames.isEmpty ? "plus.app.fill" : "checkmark.circle.fill")
+                            .font(.system(size: 22))
+                            .foregroundColor(.vaultAccent)
+                    }
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(selection.appNames.isEmpty
+                             ? "Selecionar aplicativos"
+                             : "\(selection.count) app\(selection.count == 1 ? "" : "s") selecionado\(selection.count == 1 ? "" : "s")")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.white)
+                        if !selection.appNames.isEmpty {
+                            Text(selection.appNames.prefix(3).joined(separator: " · ") + (selection.count > 3 ? " ···" : ""))
+                                .font(.system(size: 12))
+                                .foregroundColor(.vaultMuted)
+                                .lineLimit(1)
+                        } else {
+                            Text("Toque para escolher")
+                                .font(.system(size: 12))
+                                .foregroundColor(.vaultMuted)
+                        }
+                    }
                     Spacer()
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 13))
-                        .foregroundColor(.gray)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.vaultMuted)
                 }
                 .padding(16)
-                .background(Color.vaultCard)
-                .cornerRadius(14)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color.vaultCard)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(!selection.appNames.isEmpty ? Color.vaultAccent.opacity(0.35) : Color.vaultCardBorder, lineWidth: 1.5)
+                        )
+                )
             }
             .buttonStyle(.plain)
             .sheet(isPresented: $showAppPicker) {
@@ -223,129 +120,222 @@ struct AddGroupView: View {
         }
     }
 
-    private var lockTypeSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Tipo de Bloqueio", systemImage: "lock.rotation")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(.white.opacity(0.5))
-            VStack(spacing: 8) {
-                ForEach(LockGroup.LockType.allCases) { type in
-                    Button {
-                        lockType = type
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: type.icon)
-                                .font(.system(size: 18))
-                                .foregroundColor(lockType == type ? Color(hex: selectedColorHex) : .gray)
-                                .frame(width: 24)
-                            Text(type.rawValue)
-                                .font(.system(size: 15))
-                                .foregroundColor(.white)
-                            Spacer()
-                            if lockType == type {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(Color(hex: selectedColorHex))
-                            }
+    private var bottomBar: some View {
+        VStack(spacing: 0) {
+            Rectangle().fill(Color.vaultCardBorder).frame(height: 1)
+            Button("Definir Senha") { step = 1 }
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(canContinue ? .white : .vaultMuted)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 18)
+                .background(
+                    Group {
+                        if canContinue {
+                            LinearGradient(colors: [.vaultAccent, .vaultPurple], startPoint: .leading, endPoint: .trailing)
+                                .cornerRadius(16)
+                        } else {
+                            Color.vaultCard.cornerRadius(16)
                         }
-                        .padding(14)
-                        .background(lockType == type ? Color(hex: selectedColorHex).opacity(0.1) : Color.vaultCard)
-                        .cornerRadius(12)
-                        .overlay(RoundedRectangle(cornerRadius: 12)
-                            .stroke(lockType == type ? Color(hex: selectedColorHex).opacity(0.4) : Color.clear, lineWidth: 1.5))
                     }
-                    .buttonStyle(.plain)
-                }
-            }
+                )
+                .padding(20)
+                .animation(.easeInOut(duration: 0.2), value: canContinue)
+                .disabled(!canContinue)
         }
+        .background(Color.vaultBackground)
     }
 
-    private var continueButton: some View {
-        Button("Continuar") {
-            step = 1
-        }
-        .buttonStyle(PrimaryButtonStyle())
-        .disabled(groupName.isEmpty || selection.appNames.isEmpty)
-        .opacity(groupName.isEmpty || selection.appNames.isEmpty ? 0.5 : 1)
+    // MARK: - Step 2: PIN
+
+    private var pinStep: some View {
+        PinSetupView(
+            groupName: groupName,
+            lockType: .pin4,
+            onComplete: { pin in saveGroup(pin: pin) },
+            onBack: { step = 0 }
+        )
     }
 
     private func saveGroup(pin: String) {
-        var group = LockGroup(name: groupName, colorHex: selectedColorHex, iconName: selectedIcon)
+        var group = LockGroup(
+            name: groupName.trimmingCharacters(in: .whitespaces),
+            colorHex: autoColor,
+            iconName: "lock.fill"
+        )
         group.selection = selection
-        group.lockType = lockType
-        group.isBiometricEnabled = lockType == .biometric || lockType == .biometricWithPin
-
+        group.lockType = .pin4
         if !pin.isEmpty {
             try? KeychainService.shared.savePin(pin, forGroupId: group.id)
             group.pinHash = "set"
         }
-
         lockService.addGroup(group)
         dismiss()
     }
+
+    private func label(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 12, weight: .bold))
+            .foregroundColor(.vaultMuted)
+            .textCase(.uppercase)
+            .tracking(0.8)
+    }
 }
+
+// MARK: - App Picker
 
 struct AppPickerSheet: View {
     @Binding var selection: AppSelection
     @Environment(\.dismiss) var dismiss
+    @State private var search = ""
 
-    private let appCategories: [(category: String, apps: [String])] = [
-        ("Redes Sociais", ["Instagram", "TikTok", "Twitter/X", "Facebook", "Snapchat", "Pinterest", "BeReal", "Threads"]),
-        ("Mensagens", ["WhatsApp", "Telegram", "Discord", "Messenger", "Signal"]),
-        ("Entretenimento", ["YouTube", "Netflix", "Spotify", "Twitch", "Prime Video", "Disney+"]),
-        ("Jogos", ["PUBG Mobile", "Free Fire", "Roblox", "Minecraft", "Clash Royale", "Fortnite"]),
-        ("Compras", ["Amazon", "Shopee", "Mercado Livre", "AliExpress", "iFood"]),
+    private let apps: [(name: String, icon: String, cat: String)] = [
+        ("Instagram",    "camera.fill",                    "Social"),
+        ("TikTok",       "play.circle.fill",               "Social"),
+        ("Twitter/X",    "at",                             "Social"),
+        ("Facebook",     "person.2.fill",                  "Social"),
+        ("Snapchat",     "camera.aperture",                "Social"),
+        ("BeReal",       "circle.inset.filled",            "Social"),
+        ("Threads",      "bubble.left.and.bubble.right.fill","Social"),
+        ("Pinterest",    "photo.on.rectangle.angled",      "Social"),
+        ("WhatsApp",     "message.fill",                   "Mensagens"),
+        ("Telegram",     "paperplane.fill",                "Mensagens"),
+        ("Discord",      "headphones",                     "Mensagens"),
+        ("Messenger",    "ellipsis.bubble.fill",           "Mensagens"),
+        ("Signal",       "lock.fill",                      "Mensagens"),
+        ("YouTube",      "play.rectangle.fill",            "Entretenimento"),
+        ("Netflix",      "film.fill",                      "Entretenimento"),
+        ("Spotify",      "music.note",                     "Entretenimento"),
+        ("Twitch",       "video.fill",                     "Entretenimento"),
+        ("Disney+",      "sparkles.tv.fill",               "Entretenimento"),
+        ("PUBG Mobile",  "scope",                          "Jogos"),
+        ("Free Fire",    "flame.fill",                     "Jogos"),
+        ("Roblox",       "cube.fill",                      "Jogos"),
+        ("Minecraft",    "square.grid.2x2.fill",           "Jogos"),
+        ("Clash Royale", "shield.fill",                    "Jogos"),
+        ("Fortnite",     "bolt.fill",                      "Jogos"),
+        ("Amazon",       "bag.fill",                       "Compras"),
+        ("Shopee",       "cart.fill",                      "Compras"),
+        ("iFood",        "fork.knife",                     "Compras"),
+        ("Mercado Livre","tag.fill",                       "Compras"),
+        ("LinkedIn",     "briefcase.fill",                 "Trabalho"),
+        ("Outlook",      "envelope.fill",                  "Trabalho"),
+        ("Gmail",        "tray.fill",                      "Trabalho"),
+        ("Uber",         "car.fill",                       "Outros"),
+        ("Maps",         "map.fill",                       "Outros"),
     ]
+
+    private var filtered: [(name: String, icon: String, cat: String)] {
+        search.isEmpty ? apps : apps.filter { $0.name.localizedCaseInsensitiveContains(search) }
+    }
+
+    private var categories: [String] {
+        var seen = Set<String>()
+        return filtered.compactMap { seen.insert($0.cat).inserted ? $0.cat : nil }
+    }
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.vaultBackground.ignoresSafeArea()
-                List {
-                    ForEach(appCategories, id: \.category) { section in
-                        Section {
-                            ForEach(section.apps, id: \.self) { app in
-                                Button {
-                                    if selection.appNames.contains(app) {
-                                        selection.appNames.removeAll { $0 == app }
-                                    } else {
-                                        selection.appNames.append(app)
-                                    }
-                                } label: {
-                                    HStack {
-                                        Text(app)
-                                            .foregroundColor(.white)
-                                        Spacer()
-                                        if selection.appNames.contains(app) {
-                                            Image(systemName: "checkmark.circle.fill")
-                                                .foregroundColor(.vaultAccent)
-                                        }
-                                    }
-                                }
-                                .listRowBackground(Color.vaultCard)
-                            }
-                        } header: {
-                            Text(section.category)
-                                .foregroundColor(.white.opacity(0.5))
-                                .font(.system(size: 12, weight: .semibold))
-                        }
-                    }
+                VStack(spacing: 0) {
+                    searchBar
+                    appGrid
                 }
-                .listStyle(.insetGrouped)
-                .scrollContentBackground(.hidden)
             }
-            .navigationTitle("Selecionar Apps")
+            .navigationTitle(selection.count == 0 ? "Escolher Apps" : "\(selection.count) selecionado\(selection.count == 1 ? "" : "s")")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if !selection.appNames.isEmpty {
+                        Button("Limpar") { selection.appNames.removeAll() }
+                            .foregroundColor(.vaultMuted)
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Pronto") { dismiss() }
+                        .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.vaultAccent)
-                }
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Text("\(selection.count) selecionado\(selection.count == 1 ? "" : "s")")
-                        .font(.system(size: 13))
-                        .foregroundColor(.white.opacity(0.5))
                 }
             }
         }
+    }
+
+    private var searchBar: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(.vaultMuted)
+                .font(.system(size: 15))
+            TextField("Buscar app...", text: $search)
+                .font(.system(size: 15))
+                .foregroundColor(.white)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(RoundedRectangle(cornerRadius: 14).fill(Color.vaultCard).overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.vaultCardBorder, lineWidth: 1)))
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+    }
+
+    private var appGrid: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 24) {
+                ForEach(categories, id: \.self) { cat in
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(cat)
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.vaultMuted)
+                            .tracking(0.8)
+                            .textCase(.uppercase)
+                            .padding(.leading, 4)
+
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 4), spacing: 12) {
+                            ForEach(filtered.filter { $0.cat == cat }, id: \.name) { app in
+                                appTile(app.name, icon: app.icon)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 40)
+        }
+    }
+
+    private func appTile(_ name: String, icon: String) -> some View {
+        let on = selection.appNames.contains(name)
+        return Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            if on { selection.appNames.removeAll { $0 == name } }
+            else { selection.appNames.append(name) }
+        } label: {
+            VStack(spacing: 8) {
+                ZStack(alignment: .topTrailing) {
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(on ? Color.vaultAccent.opacity(0.18) : Color.vaultCard)
+                        .frame(height: 64)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(on ? Color.vaultAccent.opacity(0.7) : Color.vaultCardBorder, lineWidth: on ? 2 : 1)
+                        )
+                    Image(systemName: icon)
+                        .font(.system(size: 26))
+                        .foregroundColor(on ? .vaultAccent : Color(white: 0.4))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    if on {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 15))
+                            .foregroundColor(.vaultAccent)
+                            .background(Circle().fill(Color.vaultBackground).padding(2))
+                            .offset(x: 5, y: -5)
+                    }
+                }
+                Text(name)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(on ? .white : .vaultMuted)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+        }
+        .buttonStyle(ScaleButtonStyle())
     }
 }

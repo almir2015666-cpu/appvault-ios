@@ -1,196 +1,112 @@
 import SwiftUI
 
 struct OnboardingView: View {
-    @EnvironmentObject var lockService: AppLockService
-    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
-    @State private var currentPage = 0
+    @AppStorage("hasCompletedOnboarding") private var done = false
+    @State private var page = 0
 
-    private let pages: [OnboardingPage] = [
-        OnboardingPage(
-            icon: "shield.fill",
-            gradientColors: ["#6C63FF", "#9D4EDD"],
-            title: "Bem-vindo ao AppVault",
-            subtitle: "Proteja qualquer app com sua própria senha. Você decide quem acessa o quê, quando quiser."
-        ),
-        OnboardingPage(
-            icon: "rectangle.grid.2x2.fill",
-            gradientColors: ["#00C9A7", "#6C63FF"],
-            title: "Grupos Inteligentes",
-            subtitle: "Organize seus apps por categoria com senhas únicas. Redes sociais, jogos, compras — tudo separado."
-        ),
-        OnboardingPage(
-            icon: "faceid",
-            gradientColors: ["#FF7849", "#FFB347"],
-            title: "Face ID & Touch ID",
-            subtitle: "Desbloqueie com biometria de forma instantânea. Segurança sem abrir mão da praticidade."
-        ),
+    private let pages: [(icon: String, colors: [String], title: String, sub: String)] = [
+        ("lock.shield.fill",         ["#6C63FF","#9D4EDD"],
+         "Bem-vindo ao AppVault",
+         "Proteja qualquer app com uma senha pessoal. Simples, rápido e seguro."),
+        ("rectangle.grid.2x2.fill",  ["#00C9A7","#54A0FF"],
+         "Grupos por categoria",
+         "Crie grupos de apps — redes sociais, jogos, trabalho — cada um com sua senha."),
+        ("faceid",                   ["#FF9F43","#FF6B6B"],
+         "Face ID incluso",
+         "Desbloqueie com Face ID ou Touch ID. Segurança sem complicação."),
     ]
 
     var body: some View {
         ZStack {
             Color.vaultBackground.ignoresSafeArea()
-
             VStack(spacing: 0) {
-                TabView(selection: $currentPage) {
-                    ForEach(Array(pages.enumerated()), id: \.offset) { index, page in
-                        OnboardingPageView(page: page).tag(index)
+                TabView(selection: $page) {
+                    ForEach(pages.indices, id: \.self) { i in
+                        pageView(pages[i]).tag(i)
                     }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
-                .animation(.spring(response: 0.45, dampingFraction: 0.85), value: currentPage)
-
-                bottomSection
+                bottom
             }
         }
     }
 
-    private var bottomSection: some View {
-        VStack(spacing: 18) {
-            // Dots
+    private func pageView(_ p: (icon: String, colors: [String], title: String, sub: String)) -> some View {
+        VStack(spacing: 40) {
+            Spacer()
+            ZStack {
+                Circle()
+                    .fill(RadialGradient(
+                        colors: [Color(hex: p.colors[0]).opacity(0.18), .clear],
+                        center: .center, startRadius: 50, endRadius: 140))
+                    .frame(width: 280, height: 280)
+                Circle()
+                    .fill(LinearGradient(
+                        colors: p.colors.map { Color(hex: $0).opacity(0.2) },
+                        startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .frame(width: 140, height: 140)
+                Image(systemName: p.icon)
+                    .font(.system(size: 58, weight: .semibold))
+                    .foregroundStyle(LinearGradient(
+                        colors: p.colors.map { Color(hex: $0) },
+                        startPoint: .topLeading, endPoint: .bottomTrailing))
+            }
+            VStack(spacing: 14) {
+                Text(p.title)
+                    .font(.system(size: 26, weight: .black, design: .rounded))
+                    .foregroundColor(.white).multilineTextAlignment(.center)
+                Text(p.sub)
+                    .font(.system(size: 15)).foregroundColor(.vaultMuted)
+                    .multilineTextAlignment(.center).lineSpacing(6)
+                    .padding(.horizontal, 8)
+            }
+            Spacer(); Spacer()
+        }
+        .padding(.horizontal, 36)
+    }
+
+    private var bottom: some View {
+        VStack(spacing: 16) {
             HStack(spacing: 6) {
-                ForEach(0..<pages.count, id: \.self) { i in
+                ForEach(pages.indices, id: \.self) { i in
                     Capsule()
-                        .fill(i == currentPage ? Color.vaultAccent : Color.vaultCard)
-                        .frame(width: i == currentPage ? 26 : 8, height: 8)
-                        .animation(.spring(response: 0.35), value: currentPage)
+                        .fill(i == page ? Color.vaultAccent : Color.vaultCard)
+                        .frame(width: i == page ? 24 : 8, height: 8)
+                        .animation(.spring(response: 0.3), value: page)
                 }
             }
-
-            if currentPage < pages.count - 1 {
+            if page < pages.count - 1 {
                 HStack(spacing: 12) {
-                    Button("Pular") { hasCompletedOnboarding = true }
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(.vaultMuted)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 17)
-                        .background(
-                            RoundedRectangle(cornerRadius: 15)
-                                .fill(Color.vaultCard)
-                                .overlay(RoundedRectangle(cornerRadius: 15).stroke(Color.vaultCardBorder, lineWidth: 1))
-                        )
-
-                    Button("Próximo") { withAnimation { currentPage += 1 } }
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 17)
-                        .background(
-                            LinearGradient(
-                                colors: [.vaultAccent, .vaultPurple],
-                                startPoint: .leading, endPoint: .trailing
-                            )
-                            .cornerRadius(15)
-                        )
+                    Button("Pular") { done = true }
+                        .font(.system(size: 15, weight: .medium)).foregroundColor(.vaultMuted)
+                        .frame(maxWidth: .infinity).padding(.vertical, 17)
+                        .background(RoundedRectangle(cornerRadius: 15).fill(Color.vaultCard)
+                            .overlay(RoundedRectangle(cornerRadius: 15).stroke(Color.vaultCardBorder, lineWidth: 1)))
+                    Button("Próximo") { withAnimation(.spring(response: 0.4)) { page += 1 } }
+                        .font(.system(size: 15, weight: .bold)).foregroundColor(.white)
+                        .frame(maxWidth: .infinity).padding(.vertical, 17)
+                        .background(LinearGradient(colors: [.vaultAccent,.vaultPurple], startPoint: .leading, endPoint: .trailing).cornerRadius(15))
                 }
             } else {
-                Button("Começar Agora") { hasCompletedOnboarding = true }
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 19)
-                    .background(
-                        LinearGradient(colors: [.vaultAccent, .vaultPurple],
-                                       startPoint: .leading, endPoint: .trailing)
-                        .cornerRadius(17)
-                    )
-                    .shadow(color: .vaultAccent.opacity(0.4), radius: 24, x: 0, y: 10)
+                Button("Começar") { done = true }
+                    .font(.system(size: 17, weight: .black)).foregroundColor(.white)
+                    .frame(maxWidth: .infinity).padding(.vertical, 19)
+                    .background(LinearGradient(colors: [.vaultAccent,.vaultPurple], startPoint: .leading, endPoint: .trailing).cornerRadius(17))
+                    .shadow(color: .vaultAccent.opacity(0.45), radius: 24, x: 0, y: 10)
             }
         }
-        .padding(.horizontal, 24)
-        .padding(.bottom, 52)
-        .padding(.top, 14)
-    }
-}
-
-struct OnboardingPage: Identifiable {
-    let id = UUID()
-    let icon: String
-    let gradientColors: [String]
-    let title: String
-    let subtitle: String
-}
-
-struct OnboardingPageView: View {
-    let page: OnboardingPage
-
-    var body: some View {
-        VStack(spacing: 44) {
-            Spacer()
-
-            ZStack {
-                // Outer soft ring
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [Color(hex: page.gradientColors[0]).opacity(0.14), .clear],
-                            center: .center, startRadius: 60, endRadius: 140
-                        )
-                    )
-                    .frame(width: 280, height: 280)
-
-                // Icon background
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: page.gradientColors.map { Color(hex: $0).opacity(0.18) },
-                            startPoint: .topLeading, endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 144, height: 144)
-                    .overlay(
-                        Circle().stroke(
-                            LinearGradient(
-                                colors: [Color(hex: page.gradientColors[0]).opacity(0.4), .clear],
-                                startPoint: .topLeading, endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1
-                        )
-                    )
-
-                Image(systemName: page.icon)
-                    .font(.system(size: 60, weight: .semibold))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: page.gradientColors.map { Color(hex: $0) },
-                            startPoint: .topLeading, endPoint: .bottomTrailing
-                        )
-                    )
-            }
-
-            VStack(spacing: 14) {
-                Text(page.title)
-                    .font(.system(size: 27, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-                    .multilineTextAlignment(.center)
-
-                Text(page.subtitle)
-                    .font(.system(size: 15))
-                    .foregroundColor(.vaultMuted)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(6)
-                    .padding(.horizontal, 12)
-            }
-
-            Spacer()
-            Spacer()
-        }
-        .padding(.horizontal, 32)
+        .padding(.horizontal, 24).padding(.bottom, 52).padding(.top, 14)
     }
 }
 
 struct PrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 16, weight: .semibold))
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 17)
-            .background(
-                LinearGradient(colors: [Color.vaultAccent, Color.vaultPurple],
-                               startPoint: .leading, endPoint: .trailing)
-            )
+            .font(.system(size: 16, weight: .bold)).foregroundColor(.white)
+            .frame(maxWidth: .infinity).padding(.vertical, 17)
+            .background(LinearGradient(colors: [Color.vaultAccent, Color.vaultPurple], startPoint: .leading, endPoint: .trailing))
             .cornerRadius(15)
-            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.spring(response: 0.2), value: configuration.isPressed)
     }
 }

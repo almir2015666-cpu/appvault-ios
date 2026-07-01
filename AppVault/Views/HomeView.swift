@@ -4,8 +4,8 @@ struct HomeView: View {
     @EnvironmentObject var lockService: AppLockService
     @State private var showAddGroup = false
 
-    private var activeCount: Int { lockService.groups.filter(\.isActive).count }
-    private var totalApps: Int { lockService.groups.filter(\.isActive).reduce(0) { $0 + $1.appCount } }
+    private var active: [LockGroup] { lockService.groups.filter(\.isActive) }
+    private var totalApps: Int { active.reduce(0) { $0 + $1.appCount } }
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -14,81 +14,75 @@ struct HomeView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
                     header
-                    statsRow
-                        .padding(.horizontal, 20)
-                        .padding(.top, 20)
-                    groupsSection
-                        .padding(.top, 32)
+                    if !lockService.groups.isEmpty {
+                        summaryCard
+                            .padding(.horizontal, 20)
+                            .padding(.top, 20)
+                    }
+                    groupsList
+                        .padding(.top, 28)
                 }
                 .padding(.bottom, 110)
             }
 
-            addFAB
-                .padding(.trailing, 24)
-                .padding(.bottom, 28)
+            addButton
+                .padding(.trailing, 22)
+                .padding(.bottom, 24)
         }
         .sheet(isPresented: $showAddGroup) {
-            AddGroupView()
-                .environmentObject(lockService)
+            AddGroupView().environmentObject(lockService)
         }
     }
 
-    // MARK: - Header
+    // MARK: Header
 
     private var header: some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 3) {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
                 Text("AppVault")
-                    .font(.system(size: 30, weight: .black, design: .rounded))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [.vaultAccentLight, .vaultPurple],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                Text("Proteção inteligente de apps")
+                    .font(.system(size: 32, weight: .black, design: .rounded))
+                    .foregroundStyle(LinearGradient(
+                        colors: [.vaultAccentLight, .vaultPurple],
+                        startPoint: .leading, endPoint: .trailing))
+                Text(lockService.groups.isEmpty ? "Comece adicionando um grupo" : "Seus apps protegidos")
                     .font(.system(size: 13))
                     .foregroundColor(.vaultMuted)
             }
             Spacer()
-            statusBadge
+            if !lockService.groups.isEmpty { statusPill }
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 22)
         .padding(.top, 20)
-        .padding(.bottom, 4)
     }
 
-    private var statusBadge: some View {
-        HStack(spacing: 6) {
+    private var statusPill: some View {
+        let on = !active.isEmpty
+        return HStack(spacing: 6) {
             Circle()
-                .fill(activeCount > 0 ? Color.vaultGreen : Color.vaultMuted)
+                .fill(on ? Color.vaultGreen : Color.vaultMuted)
                 .frame(width: 7, height: 7)
-            Text(activeCount > 0 ? "Ativo" : "Inativo")
+            Text(on ? "Ativo" : "Inativo")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(activeCount > 0 ? .vaultGreen : .vaultMuted)
+                .foregroundColor(on ? .vaultGreen : .vaultMuted)
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 13)
         .padding(.vertical, 7)
         .background(
             Capsule()
-                .fill(activeCount > 0 ? Color.vaultGreen.opacity(0.1) : Color.vaultCard)
-                .overlay(Capsule().stroke(
-                    activeCount > 0 ? Color.vaultGreen.opacity(0.25) : Color.vaultCardBorder,
-                    lineWidth: 1
-                ))
+                .fill(on ? Color.vaultGreen.opacity(0.1) : Color.vaultCard)
+                .overlay(Capsule().stroke(on ? Color.vaultGreen.opacity(0.3) : Color.vaultCardBorder, lineWidth: 1))
         )
     }
 
-    // MARK: - Stats
+    // MARK: Summary card
 
-    private var statsRow: some View {
-        HStack(spacing: 1) {
-            statCell(value: "\(activeCount)", label: "Ativos", icon: "shield.fill", color: .vaultAccent)
-            divider
-            statCell(value: "\(totalApps)", label: "Apps", icon: "apps.iphone", color: .vaultPurple)
-            divider
-            statCell(value: "\(lockService.groups.count)", label: "Grupos", icon: "folder.fill", color: .vaultTeal)
+    private var summaryCard: some View {
+        HStack(spacing: 0) {
+            stat(value: "\(lockService.groups.count)", label: "Grupos", color: .vaultAccent)
+            vDivider
+            stat(value: "\(active.count)", label: "Ativos", color: .vaultGreen)
+            vDivider
+            stat(value: "\(totalApps)", label: "Apps", color: .vaultPurple)
         }
         .padding(.vertical, 20)
         .background(
@@ -98,46 +92,36 @@ struct HomeView: View {
         )
     }
 
-    private func statCell(value: String, label: String, icon: String, color: Color) -> some View {
-        VStack(spacing: 7) {
-            Image(systemName: icon)
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(color)
+    private func stat(value: String, label: String, color: Color) -> some View {
+        VStack(spacing: 6) {
             Text(value)
-                .font(.system(size: 30, weight: .bold, design: .rounded))
+                .font(.system(size: 32, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
             Text(label)
-                .font(.system(size: 11, weight: .medium))
+                .font(.system(size: 11, weight: .semibold))
                 .foregroundColor(.vaultMuted)
+                .tracking(0.5)
         }
         .frame(maxWidth: .infinity)
     }
 
-    private var divider: some View {
-        Rectangle()
-            .fill(Color.vaultCardBorder)
-            .frame(width: 1, height: 64)
+    private var vDivider: some View {
+        Rectangle().fill(Color.vaultCardBorder).frame(width: 1, height: 48)
     }
 
-    // MARK: - Groups
+    // MARK: Groups list
 
-    private var groupsSection: some View {
+    private var groupsList: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text("Meus Grupos")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.white)
-                Spacer()
-                if !lockService.groups.isEmpty {
-                    Text("\(lockService.groups.count)")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.vaultMuted)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(Capsule().fill(Color.vaultCard))
+            if !lockService.groups.isEmpty {
+                HStack {
+                    Text("Grupos")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundColor(.white)
+                    Spacer()
                 }
+                .padding(.horizontal, 22)
             }
-            .padding(.horizontal, 20)
 
             if lockService.groups.isEmpty {
                 emptyState
@@ -156,29 +140,30 @@ struct HomeView: View {
         }
     }
 
+    // MARK: Empty state
+
     private var emptyState: some View {
-        VStack(spacing: 22) {
+        VStack(spacing: 24) {
+            Spacer(minLength: 40)
+
             ZStack {
-                Circle()
-                    .fill(Color.vaultAccent.opacity(0.06))
-                    .frame(width: 150, height: 150)
-                Circle()
-                    .fill(Color.vaultAccent.opacity(0.04))
-                    .frame(width: 100, height: 100)
-                Image(systemName: "shield.slash")
-                    .font(.system(size: 46, weight: .semibold))
-                    .foregroundStyle(
-                        LinearGradient(colors: [.vaultAccentLight, .vaultPurple],
-                                       startPoint: .topLeading, endPoint: .bottomTrailing)
-                    )
+                ForEach([140, 100, 66].indices, id: \.self) { i in
+                    Circle()
+                        .fill(Color.vaultAccent.opacity(Double([0.04, 0.07, 0.12][i])))
+                        .frame(width: CGFloat([140, 100, 66][i]))
+                }
+                Image(systemName: "lock.shield.fill")
+                    .font(.system(size: 34, weight: .semibold))
+                    .foregroundStyle(LinearGradient(
+                        colors: [.vaultAccentLight, .vaultPurple],
+                        startPoint: .topLeading, endPoint: .bottomTrailing))
             }
-            .padding(.top, 32)
 
             VStack(spacing: 8) {
-                Text("Nenhum grupo ainda")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                Text("Nenhum grupo criado")
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
-                Text("Crie grupos para organizar e proteger\nseus apps com senha ou Face ID.")
+                Text("Crie um grupo, escolha os apps\ne defina uma senha.")
                     .font(.system(size: 14))
                     .foregroundColor(.vaultMuted)
                     .multilineTextAlignment(.center)
@@ -186,36 +171,38 @@ struct HomeView: View {
             }
 
             Button { showAddGroup = true } label: {
-                Label("Criar Primeiro Grupo", systemImage: "plus")
-                    .font(.system(size: 15, weight: .semibold))
+                Label("Criar grupo", systemImage: "plus")
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundColor(.white)
-                    .padding(.horizontal, 28)
-                    .padding(.vertical, 15)
+                    .padding(.horizontal, 32)
+                    .padding(.vertical, 16)
                     .background(
                         LinearGradient(colors: [.vaultAccent, .vaultPurple],
                                        startPoint: .leading, endPoint: .trailing)
+                        .cornerRadius(14)
                     )
-                    .cornerRadius(14)
-                    .shadow(color: .vaultAccent.opacity(0.3), radius: 16, x: 0, y: 8)
+                    .shadow(color: .vaultAccent.opacity(0.35), radius: 18, x: 0, y: 8)
             }
-            .buttonStyle(.plain)
-            .padding(.bottom, 40)
+            .buttonStyle(ScaleButtonStyle())
+
+            Spacer()
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, 32)
     }
 
-    private var addFAB: some View {
+    // MARK: FAB
+
+    private var addButton: some View {
         Button { showAddGroup = true } label: {
             ZStack {
                 Circle()
-                    .fill(
-                        LinearGradient(colors: [.vaultAccent, .vaultPurple],
-                                       startPoint: .topLeading, endPoint: .bottomTrailing)
-                    )
+                    .fill(LinearGradient(
+                        colors: [.vaultAccent, .vaultPurple],
+                        startPoint: .topLeading, endPoint: .bottomTrailing))
                     .frame(width: 62, height: 62)
-                    .shadow(color: .vaultAccent.opacity(0.45), radius: 20, x: 0, y: 10)
+                    .shadow(color: .vaultAccent.opacity(0.5), radius: 22, x: 0, y: 10)
                 Image(systemName: "plus")
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.system(size: 22, weight: .bold))
                     .foregroundColor(.white)
             }
         }
