@@ -11,7 +11,8 @@ struct ContentView: View {
                 .environmentObject(lockService)
                 .environmentObject(authService)
                 .tabItem {
-                    Label("Início", systemImage: selectedTab == 0 ? "house.fill" : "house")
+                    Image(systemName: selectedTab == 0 ? "shield.fill" : "shield")
+                    Text("Início")
                 }
                 .tag(0)
 
@@ -19,18 +20,31 @@ struct ContentView: View {
                 .environmentObject(lockService)
                 .environmentObject(authService)
                 .tabItem {
-                    Label("Configurações", systemImage: selectedTab == 1 ? "gearshape.fill" : "gearshape")
+                    Image(systemName: selectedTab == 1 ? "gearshape.fill" : "gearshape")
+                    Text("Config.")
                 }
                 .tag(1)
         }
         .tint(Color.vaultAccent)
         .preferredColorScheme(.dark)
-        .onAppear {
-            let appearance = UITabBarAppearance()
-            appearance.configureWithTransparentBackground()
-            appearance.backgroundColor = UIColor(Color.vaultBackground).withAlphaComponent(0.95)
-            UITabBar.appearance().standardAppearance = appearance
-            UITabBar.appearance().scrollEdgeAppearance = appearance
-        }
+        .onAppear { configureTabBar() }
+    }
+
+    private func configureTabBar() {
+        let appearance = UITabBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor(Color.vaultSurface)
+        appearance.shadowColor = UIColor.white.withAlphaComponent(0.06)
+
+        let normalAttr: [NSAttributedString.Key: Any] = [.foregroundColor: UIColor(Color.vaultMuted)]
+        let selectedAttr: [NSAttributedString.Key: Any] = [.foregroundColor: UIColor(Color.vaultAccent)]
+
+        appearance.stackedLayoutAppearance.normal.titleTextAttributes = normalAttr
+        appearance.stackedLayoutAppearance.selected.titleTextAttributes = selectedAttr
+        appearance.stackedLayoutAppearance.normal.iconColor = UIColor(Color.vaultMuted)
+        appearance.stackedLayoutAppearance.selected.iconColor = UIColor(Color.vaultAccent)
+
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
     }
 }

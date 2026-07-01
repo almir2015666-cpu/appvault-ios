@@ -13,39 +13,40 @@ struct PinPadView: View {
     ]
 
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 28) {
             dotRow
             grid
         }
     }
 
     private var dotRow: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 18) {
             ForEach(0..<digitCount, id: \.self) { i in
-                Circle()
-                    .fill(i < pin.count ? Color.vaultAccent : Color.vaultCard)
-                    .frame(width: 16, height: 16)
-                    .overlay(
+                ZStack {
+                    Circle()
+                        .stroke(Color.vaultAccent.opacity(0.3), lineWidth: 2)
+                        .frame(width: 18, height: 18)
+                    if i < pin.count {
                         Circle()
-                            .stroke(Color.vaultAccent.opacity(0.4), lineWidth: 1.5)
-                    )
-                    .scaleEffect(i < pin.count ? 1.15 : 1.0)
-                    .animation(.spring(response: 0.2), value: pin.count)
+                            .fill(Color.vaultAccent)
+                            .frame(width: 14, height: 14)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+                .animation(.spring(response: 0.2, dampingFraction: 0.6), value: pin.count)
             }
         }
     }
 
     private var grid: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 14) {
             ForEach(buttons, id: \.self) { row in
-                HStack(spacing: 12) {
+                HStack(spacing: 14) {
                     ForEach(row, id: \.self) { label in
                         if label.isEmpty {
-                            Color.clear.frame(width: 80, height: 80)
+                            Color.clear.frame(width: 82, height: 82)
                         } else {
-                            PinButton(label: label) {
-                                handleTap(label)
-                            }
+                            PinButton(label: label) { handleTap(label) }
                         }
                     }
                 }
@@ -59,7 +60,7 @@ struct PinPadView: View {
         } else if pin.count < digitCount {
             pin.append(label)
             if pin.count == digitCount {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
                     onComplete(pin)
                 }
             }
@@ -71,26 +72,24 @@ private struct PinButton: View {
     let label: String
     let action: () -> Void
 
-    @State private var isPressed = false
-
     var body: some View {
         Button(action: {
-            let impact = UIImpactFeedbackGenerator(style: .light)
-            impact.impactOccurred()
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
             action()
         }) {
             ZStack {
                 Circle()
-                    .fill(isPressed ? Color.vaultAccent.opacity(0.3) : Color.vaultCard)
-                    .frame(width: 80, height: 80)
+                    .fill(Color.vaultCard)
+                    .frame(width: 82, height: 82)
+                    .overlay(Circle().stroke(Color.vaultCardBorder, lineWidth: 1))
 
                 if label == "⌫" {
                     Image(systemName: "delete.left")
                         .font(.system(size: 22, weight: .medium))
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(.white.opacity(0.75))
                 } else {
                     Text(label)
-                        .font(.system(size: 28, weight: .light, design: .rounded))
+                        .font(.system(size: 30, weight: .light, design: .rounded))
                         .foregroundColor(.white)
                 }
             }
@@ -102,7 +101,8 @@ private struct PinButton: View {
 struct ScaleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
-            .animation(.spring(response: 0.15), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed ? 0.90 : 1.0)
+            .brightness(configuration.isPressed ? 0.08 : 0)
+            .animation(.spring(response: 0.15, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }

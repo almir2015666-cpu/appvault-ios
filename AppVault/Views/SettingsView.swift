@@ -7,109 +7,112 @@ struct SettingsView: View {
     @AppStorage("defaultUnlockDuration") private var unlockDuration = 5.0
     @AppStorage("showFailedAttempts") private var showFailedAttempts = true
     @State private var showDeleteAllAlert = false
-    @State private var showResetOnboarding = false
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.vaultBackground.ignoresSafeArea()
-                List {
-                    securitySection
-                    behaviourSection
-                    aboutSection
-                    dangerSection
+
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 24) {
+                        appHeader
+
+                        settingsGroup(title: "SEGURANÇA") {
+                            settingsRow(icon: "faceid", iconColor: .vaultAccent, title: authService.biometricType.displayName) {
+                                HStack(spacing: 6) {
+                                    Circle()
+                                        .fill(authService.isBiometricAvailable ? Color.vaultGreen : Color.vaultMuted)
+                                        .frame(width: 7, height: 7)
+                                    Text(authService.isBiometricAvailable ? "Disponível" : "Indisponível")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(authService.isBiometricAvailable ? .vaultGreen : .vaultMuted)
+                                }
+                            }
+                            Divider().background(Color.vaultCardBorder).padding(.leading, 56)
+                            settingsRow(icon: "exclamationmark.triangle.fill", iconColor: .vaultOrange, title: "Mostrar Tentativas") {
+                                Toggle("", isOn: $showFailedAttempts).tint(.vaultAccent).labelsHidden()
+                            }
+                        }
+
+                        settingsGroup(title: "COMPORTAMENTO") {
+                            settingsRow(icon: "timer", iconColor: .vaultTeal, title: "Desbloqueio Temporário") {
+                                Picker("", selection: $unlockDuration) {
+                                    Text("1 min").tag(1.0)
+                                    Text("5 min").tag(5.0)
+                                    Text("15 min").tag(15.0)
+                                    Text("30 min").tag(30.0)
+                                }
+                                .tint(.vaultMuted)
+                            }
+                        }
+
+                        settingsGroup(title: "SOBRE") {
+                            settingsRow(icon: "info.circle.fill", iconColor: .vaultAccentLight, title: "Versão") {
+                                Text("1.0.0")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.vaultMuted)
+                            }
+                            Divider().background(Color.vaultCardBorder).padding(.leading, 56)
+                            settingsRow(icon: "lock.shield.fill", iconColor: .vaultAccent, title: "AppVault") {
+                                Text("by AppVault Inc.")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.vaultMuted)
+                            }
+                        }
+
+                        settingsGroup(title: "ZONA DE RISCO") {
+                            Button {
+                                hasCompletedOnboarding = false
+                            } label: {
+                                HStack(spacing: 14) {
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 9)
+                                            .fill(Color.vaultOrange.opacity(0.12))
+                                            .frame(width: 36, height: 36)
+                                        Image(systemName: "arrow.counterclockwise")
+                                            .font(.system(size: 15, weight: .semibold))
+                                            .foregroundColor(.vaultOrange)
+                                    }
+                                    Text("Ver Tutorial Novamente")
+                                        .font(.system(size: 15))
+                                        .foregroundColor(.vaultOrange)
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 14)
+                            }
+                            .buttonStyle(.plain)
+
+                            Divider().background(Color.vaultCardBorder).padding(.leading, 56)
+
+                            Button { showDeleteAllAlert = true } label: {
+                                HStack(spacing: 14) {
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 9)
+                                            .fill(Color.vaultRed.opacity(0.12))
+                                            .frame(width: 36, height: 36)
+                                        Image(systemName: "trash.fill")
+                                            .font(.system(size: 15, weight: .semibold))
+                                            .foregroundColor(.vaultRed)
+                                    }
+                                    Text("Remover Todos os Grupos")
+                                        .font(.system(size: 15))
+                                        .foregroundColor(.vaultRed)
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 14)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 40)
                 }
-                .listStyle(.insetGrouped)
-                .scrollContentBackground(.hidden)
             }
             .navigationTitle("Configurações")
             .navigationBarTitleDisplayMode(.large)
         }
-    }
-
-    private var securitySection: some View {
-        Section {
-            SettingsRow(icon: "faceid", iconColor: .vaultAccent, title: authService.biometricType.displayName) {
-                Toggle("", isOn: .constant(authService.isBiometricAvailable))
-                    .disabled(true)
-                    .tint(.vaultAccent)
-            }
-
-            SettingsRow(icon: "exclamationmark.triangle.fill", iconColor: .vaultPurple, title: "Mostrar Tentativas Incorretas") {
-                Toggle("", isOn: $showFailedAttempts)
-                    .tint(.vaultPurple)
-            }
-        } header: {
-            sectionHeader("Segurança")
-        }
-        .listRowBackground(Color.vaultCard)
-    }
-
-    private var behaviourSection: some View {
-        Section {
-            SettingsRow(icon: "timer", iconColor: Color(hex: "#FF6B35"), title: "Duração do Desbloqueio Temporário") {
-                Picker("", selection: $unlockDuration) {
-                    Text("1 min").tag(1.0)
-                    Text("5 min").tag(5.0)
-                    Text("15 min").tag(15.0)
-                    Text("30 min").tag(30.0)
-                }
-                .tint(.gray)
-            }
-        } header: {
-            sectionHeader("Comportamento")
-        }
-        .listRowBackground(Color.vaultCard)
-    }
-
-    private var aboutSection: some View {
-        Section {
-            SettingsRow(icon: "info.circle.fill", iconColor: Color(hex: "#06D6A0"), title: "Versão") {
-                Text("1.0.0")
-                    .foregroundColor(.gray)
-                    .font(.system(size: 14))
-            }
-
-            SettingsRow(icon: "lock.shield.fill", iconColor: Color(hex: "#4361EE"), title: "AppVault") {
-                Text("by AppVault Inc.")
-                    .foregroundColor(.gray)
-                    .font(.system(size: 14))
-            }
-        } header: {
-            sectionHeader("Sobre")
-        }
-        .listRowBackground(Color.vaultCard)
-    }
-
-    private var dangerSection: some View {
-        Section {
-            Button {
-                showDeleteAllAlert = true
-            } label: {
-                HStack {
-                    Image(systemName: "trash.fill")
-                        .foregroundColor(Color.vaultRed)
-                        .frame(width: 28)
-                    Text("Remover Todos os Grupos")
-                        .foregroundColor(Color.vaultRed)
-                }
-            }
-
-            Button {
-                hasCompletedOnboarding = false
-            } label: {
-                HStack {
-                    Image(systemName: "arrow.counterclockwise")
-                        .foregroundColor(.orange)
-                        .frame(width: 28)
-                    Text("Ver Tutorial Novamente")
-                        .foregroundColor(.orange)
-                }
-            }
-        } header: {
-            sectionHeader("Zona de Perigo")
-        }
-        .listRowBackground(Color.vaultCard)
         .alert("Remover Tudo?", isPresented: $showDeleteAllAlert) {
             Button("Cancelar", role: .cancel) {}
             Button("Remover", role: .destructive) {
@@ -120,39 +123,68 @@ struct SettingsView: View {
         }
     }
 
-    private func sectionHeader(_ title: String) -> some View {
-        Text(title)
-            .font(.system(size: 12, weight: .semibold))
-            .foregroundColor(.white.opacity(0.4))
-            .textCase(.uppercase)
-    }
-}
-
-struct SettingsRow<Trailing: View>: View {
-    let icon: String
-    let iconColor: Color
-    let title: String
-    @ViewBuilder var trailing: () -> Trailing
-
-    var body: some View {
-        HStack(spacing: 12) {
+    private var appHeader: some View {
+        HStack(spacing: 14) {
             ZStack {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(iconColor.opacity(0.15))
-                    .frame(width: 34, height: 34)
-                Image(systemName: icon)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(iconColor)
+                LinearGradient(colors: [.vaultAccent, .vaultPurple],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                    .frame(width: 60, height: 60)
+                    .cornerRadius(16)
+                    .shadow(color: .vaultAccent.opacity(0.35), radius: 12, x: 0, y: 6)
+                Image(systemName: "shield.fill")
+                    .font(.system(size: 26, weight: .bold))
+                    .foregroundColor(.white)
             }
 
+            VStack(alignment: .leading, spacing: 3) {
+                Text("AppVault")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundColor(.white)
+                Text("\(lockService.groups.count) grupo\(lockService.groups.count == 1 ? "" : "s") configurado\(lockService.groups.count == 1 ? "" : "s")")
+                    .font(.system(size: 13))
+                    .foregroundColor(.vaultMuted)
+            }
+
+            Spacer()
+        }
+        .padding(.top, 8)
+    }
+
+    private func settingsGroup<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(.vaultMuted)
+                .padding(.leading, 4)
+
+            VStack(spacing: 0) {
+                content()
+            }
+            .background(
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(Color.vaultCard)
+                    .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.vaultCardBorder, lineWidth: 1))
+            )
+        }
+    }
+
+    private func settingsRow<Trailing: View>(icon: String, iconColor: Color, title: String, @ViewBuilder trailing: () -> Trailing) -> some View {
+        HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 9)
+                    .fill(iconColor.opacity(0.12))
+                    .frame(width: 36, height: 36)
+                Image(systemName: icon)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(iconColor)
+            }
             Text(title)
                 .font(.system(size: 15))
                 .foregroundColor(.white)
-
             Spacer()
-
             trailing()
         }
-        .padding(.vertical, 2)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
     }
 }

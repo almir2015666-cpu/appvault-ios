@@ -7,52 +7,62 @@ struct LockGroupCard: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 16) {
-                iconView
-                infoView
+            HStack(spacing: 14) {
+                // Colored accent bar
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color(hex: group.colorHex))
+                    .frame(width: 4, height: 54)
+
+                // Icon
+                ZStack {
+                    RoundedRectangle(cornerRadius: 13)
+                        .fill(Color(hex: group.colorHex).opacity(0.13))
+                        .frame(width: 50, height: 50)
+                    Image(systemName: group.iconName)
+                        .font(.system(size: 21, weight: .semibold))
+                        .foregroundColor(Color(hex: group.colorHex))
+                }
+
+                // Text
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(group.name)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    HStack(spacing: 5) {
+                        Image(systemName: group.isActive ? "lock.fill" : "lock.open")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(group.isActive ? Color(hex: group.colorHex) : .vaultMuted)
+                        Text(group.isActive
+                             ? "\(group.appCount) app\(group.appCount == 1 ? "" : "s") protegido\(group.appCount == 1 ? "" : "s")"
+                             : "Desativado")
+                            .font(.system(size: 12))
+                            .foregroundColor(group.isActive ? .vaultMuted : Color.vaultMuted.opacity(0.6))
+                    }
+                }
+
                 Spacer()
-                Toggle("", isOn: Binding(
-                    get: { group.isActive },
-                    set: { _ in onToggle() }
-                ))
-                .tint(Color(hex: group.colorHex))
-                .labelsHidden()
+
+                Toggle("", isOn: Binding(get: { group.isActive }, set: { _ in onToggle() }))
+                    .tint(Color(hex: group.colorHex))
+                    .labelsHidden()
             }
-            .padding(16)
-            .background(Color.vaultCard)
-            .cornerRadius(16)
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(group.isActive ? Color(hex: group.colorHex).opacity(0.3) : Color.clear, lineWidth: 1.5)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(Color.vaultCard)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18)
+                            .stroke(
+                                group.isActive
+                                    ? Color(hex: group.colorHex).opacity(0.22)
+                                    : Color.vaultCardBorder,
+                                lineWidth: 1
+                            )
+                    )
             )
         }
         .buttonStyle(.plain)
-    }
-
-    private var iconView: some View {
-        ZStack {
-            Circle()
-                .fill(Color(hex: group.colorHex).opacity(0.18))
-                .frame(width: 52, height: 52)
-            Image(systemName: group.iconName)
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundColor(Color(hex: group.colorHex))
-        }
-    }
-
-    private var infoView: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(group.name)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.white)
-            HStack(spacing: 6) {
-                Image(systemName: group.isActive ? "lock.fill" : "lock.open")
-                    .font(.system(size: 11))
-                    .foregroundColor(group.isActive ? Color(hex: group.colorHex) : .gray)
-                Text(group.isActive ? "\(group.appCount) app\(group.appCount == 1 ? "" : "s") bloqueado\(group.appCount == 1 ? "" : "s")" : "Desativado")
-                    .font(.system(size: 13))
-                    .foregroundColor(group.isActive ? .white.opacity(0.7) : .gray)
-            }
-        }
     }
 }
