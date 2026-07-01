@@ -183,54 +183,65 @@ struct AddGroupView: View {
 
 // MARK: - App Picker
 
+private struct AppEntry {
+    let name: String
+    let icon: String
+    let cat: String
+    let scheme: String
+}
+
 struct AppPickerSheet: View {
     @Binding var selection: AppSelection
     @Environment(\.dismiss) var dismiss
     @State private var search = ""
+    @State private var installedNames: Set<String> = []
+    @State private var showAll = false
+    @State private var didScan = false
 
-    private let apps: [(name: String, icon: String, cat: String)] = [
-        ("Instagram",    "camera.fill",                    "Social"),
-        ("TikTok",       "play.circle.fill",               "Social"),
-        ("Twitter/X",    "at",                             "Social"),
-        ("Facebook",     "person.2.fill",                  "Social"),
-        ("Snapchat",     "camera.aperture",                "Social"),
-        ("BeReal",       "circle.inset.filled",            "Social"),
-        ("Threads",      "bubble.left.and.bubble.right.fill","Social"),
-        ("Pinterest",    "photo.on.rectangle.angled",      "Social"),
-        ("WhatsApp",     "message.fill",                   "Mensagens"),
-        ("Telegram",     "paperplane.fill",                "Mensagens"),
-        ("Discord",      "headphones",                     "Mensagens"),
-        ("Messenger",    "ellipsis.bubble.fill",           "Mensagens"),
-        ("Signal",       "lock.fill",                      "Mensagens"),
-        ("YouTube",      "play.rectangle.fill",            "Entretenimento"),
-        ("Netflix",      "film.fill",                      "Entretenimento"),
-        ("Spotify",      "music.note",                     "Entretenimento"),
-        ("Twitch",       "video.fill",                     "Entretenimento"),
-        ("Disney+",      "sparkles.tv.fill",               "Entretenimento"),
-        ("PUBG Mobile",  "scope",                          "Jogos"),
-        ("Free Fire",    "flame.fill",                     "Jogos"),
-        ("Roblox",       "cube.fill",                      "Jogos"),
-        ("Minecraft",    "square.grid.2x2.fill",           "Jogos"),
-        ("Clash Royale", "shield.fill",                    "Jogos"),
-        ("Fortnite",     "bolt.fill",                      "Jogos"),
-        ("Amazon",       "bag.fill",                       "Compras"),
-        ("Shopee",       "cart.fill",                      "Compras"),
-        ("iFood",        "fork.knife",                     "Compras"),
-        ("Mercado Livre","tag.fill",                       "Compras"),
-        ("LinkedIn",     "briefcase.fill",                 "Trabalho"),
-        ("Outlook",      "envelope.fill",                  "Trabalho"),
-        ("Gmail",        "tray.fill",                      "Trabalho"),
-        ("Uber",         "car.fill",                       "Outros"),
-        ("Maps",         "map.fill",                       "Outros"),
+    private let allApps: [AppEntry] = [
+        AppEntry(name: "Instagram",     icon: "camera.fill",                     cat: "Social",          scheme: "instagram"),
+        AppEntry(name: "TikTok",        icon: "play.circle.fill",                cat: "Social",          scheme: "tiktok"),
+        AppEntry(name: "Twitter/X",     icon: "at",                              cat: "Social",          scheme: "twitter"),
+        AppEntry(name: "Facebook",      icon: "person.2.fill",                   cat: "Social",          scheme: "fb"),
+        AppEntry(name: "Snapchat",      icon: "camera.aperture",                 cat: "Social",          scheme: "snapchat"),
+        AppEntry(name: "BeReal",        icon: "circle.inset.filled",             cat: "Social",          scheme: "bereal"),
+        AppEntry(name: "Threads",       icon: "bubble.left.and.bubble.right.fill",cat: "Social",         scheme: "threads"),
+        AppEntry(name: "Pinterest",     icon: "photo.on.rectangle.angled",       cat: "Social",          scheme: "pinterest"),
+        AppEntry(name: "Kwai",          icon: "video.badge.plus",                cat: "Social",          scheme: "kwai"),
+        AppEntry(name: "WhatsApp",      icon: "message.fill",                    cat: "Mensagens",       scheme: "whatsapp"),
+        AppEntry(name: "Telegram",      icon: "paperplane.fill",                 cat: "Mensagens",       scheme: "tg"),
+        AppEntry(name: "Discord",       icon: "headphones",                      cat: "Mensagens",       scheme: "discord"),
+        AppEntry(name: "Messenger",     icon: "ellipsis.bubble.fill",            cat: "Mensagens",       scheme: "fb-messenger"),
+        AppEntry(name: "Signal",        icon: "lock.fill",                       cat: "Mensagens",       scheme: "signal"),
+        AppEntry(name: "YouTube",       icon: "play.rectangle.fill",             cat: "Entretenimento",  scheme: "youtube"),
+        AppEntry(name: "Netflix",       icon: "film.fill",                       cat: "Entretenimento",  scheme: "nflx"),
+        AppEntry(name: "Spotify",       icon: "music.note",                      cat: "Entretenimento",  scheme: "spotify"),
+        AppEntry(name: "Twitch",        icon: "video.fill",                      cat: "Entretenimento",  scheme: "twitch"),
+        AppEntry(name: "Disney+",       icon: "sparkles.tv.fill",                cat: "Entretenimento",  scheme: "disneyplus"),
+        AppEntry(name: "Prime Video",   icon: "tv.fill",                         cat: "Entretenimento",  scheme: "prime-video"),
+        AppEntry(name: "Deezer",        icon: "waveform",                        cat: "Entretenimento",  scheme: "deezer"),
+        AppEntry(name: "Roblox",        icon: "cube.fill",                       cat: "Jogos",           scheme: "roblox"),
+        AppEntry(name: "Minecraft",     icon: "square.grid.2x2.fill",            cat: "Jogos",           scheme: "minecraft"),
+        AppEntry(name: "Shopee",        icon: "cart.fill",                       cat: "Compras",         scheme: "shopee"),
+        AppEntry(name: "iFood",         icon: "fork.knife",                      cat: "Compras",         scheme: "ifood"),
+        AppEntry(name: "Mercado Livre", icon: "tag.fill",                        cat: "Compras",         scheme: "mercadolibre"),
+        AppEntry(name: "Amazon",        icon: "bag.fill",                        cat: "Compras",         scheme: "amazon-mobile-shopping"),
+        AppEntry(name: "LinkedIn",      icon: "briefcase.fill",                  cat: "Trabalho",        scheme: "linkedin"),
+        AppEntry(name: "Outlook",       icon: "envelope.fill",                   cat: "Trabalho",        scheme: "ms-outlook"),
+        AppEntry(name: "Gmail",         icon: "tray.fill",                       cat: "Trabalho",        scheme: "googlegmail"),
+        AppEntry(name: "Reddit",        icon: "bubble.left.and.text.bubble.right.fill", cat: "Outros",   scheme: "reddit"),
+        AppEntry(name: "Uber",          icon: "car.fill",                        cat: "Outros",          scheme: "uber"),
+        AppEntry(name: "Google Maps",   icon: "map.fill",                        cat: "Outros",          scheme: "comgooglemaps"),
     ]
 
-    private var filtered: [(name: String, icon: String, cat: String)] {
-        search.isEmpty ? apps : apps.filter { $0.name.localizedCaseInsensitiveContains(search) }
+    private var visibleApps: [AppEntry] {
+        let base = (showAll || installedNames.isEmpty) ? allApps : allApps.filter { installedNames.contains($0.name) }
+        return search.isEmpty ? base : base.filter { $0.name.localizedCaseInsensitiveContains(search) }
     }
 
     private var categories: [String] {
         var seen = Set<String>()
-        return filtered.compactMap { seen.insert($0.cat).inserted ? $0.cat : nil }
+        return visibleApps.compactMap { seen.insert($0.cat).inserted ? $0.cat : nil }
     }
 
     var body: some View {
@@ -239,6 +250,9 @@ struct AppPickerSheet: View {
                 Color.vaultBackground.ignoresSafeArea()
                 VStack(spacing: 0) {
                     searchBar
+                    if didScan && !installedNames.isEmpty {
+                        installedBanner
+                    }
                     appGrid
                 }
             }
@@ -258,6 +272,29 @@ struct AppPickerSheet: View {
                 }
             }
         }
+        .onAppear { scanInstalledApps() }
+    }
+
+    private var installedBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: showAll ? "iphone.slash" : "iphone.badge.play")
+                .font(.system(size: 12))
+                .foregroundColor(.vaultTeal)
+            Text(showAll
+                 ? "Mostrando todos os apps"
+                 : "\(installedNames.count) app\(installedNames.count == 1 ? "" : "s") detectado\(installedNames.count == 1 ? "" : "s") no seu celular")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.vaultTeal)
+            Spacer()
+            Button(showAll ? "Só instalados" : "Ver todos") {
+                withAnimation(.easeInOut(duration: 0.2)) { showAll.toggle() }
+            }
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundColor(.vaultAccent)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 10)
+        .background(Color.vaultTeal.opacity(0.08))
     }
 
     private var searchBar: some View {
@@ -289,7 +326,7 @@ struct AppPickerSheet: View {
                             .padding(.leading, 4)
 
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 4), spacing: 12) {
-                            ForEach(filtered.filter { $0.cat == cat }, id: \.name) { app in
+                            ForEach(visibleApps.filter { $0.cat == cat }, id: \.name) { app in
                                 appTile(app.name, icon: app.icon)
                             }
                         }
@@ -337,5 +374,21 @@ struct AppPickerSheet: View {
             }
         }
         .buttonStyle(ScaleButtonStyle())
+    }
+
+    private func scanInstalledApps() {
+        DispatchQueue.global(qos: .userInitiated).async {
+            var found = Set<String>()
+            for app in allApps {
+                if let url = URL(string: "\(app.scheme)://"),
+                   UIApplication.shared.canOpenURL(url) {
+                    found.insert(app.name)
+                }
+            }
+            DispatchQueue.main.async {
+                installedNames = found
+                didScan = true
+            }
+        }
     }
 }

@@ -52,6 +52,41 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLSchemes:
               - appvault
+        LSApplicationQueriesSchemes:
+          - instagram
+          - tiktok
+          - twitter
+          - fb
+          - snapchat
+          - bereal
+          - pinterest
+          - threads
+          - whatsapp
+          - tg
+          - discord
+          - fb-messenger
+          - signal
+          - youtube
+          - nflx
+          - spotify
+          - twitch
+          - disneyplus
+          - roblox
+          - minecraft
+          - linkedin
+          - ms-outlook
+          - googlegmail
+          - uber
+          - comgooglemaps
+          - mercadolibre
+          - ifood
+          - shopee
+          - amazon-mobile-shopping
+          - reddit
+          - prime-video
+          - deezer
+          - kwai
+          - shakeit
     entitlements:
       path: AppVault/AppVault.entitlements
     settings:
