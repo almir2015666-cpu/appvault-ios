@@ -1,5 +1,4 @@
 import SwiftUI
-import FamilyControls
 
 struct AddGroupView: View {
     @EnvironmentObject var lockService: AppLockService
@@ -9,14 +8,10 @@ struct AddGroupView: View {
     @State private var selectedColorHex = "#4361EE"
     @State private var selectedIcon = "lock.shield.fill"
     @State private var selectedPreset: Int? = nil
-    @State private var selection = FamilyActivitySelection()
+    @State private var selection = AppSelection()
     @State private var showAppPicker = false
     @State private var lockType = LockGroup.LockType.pin4
-    @State private var pin = ""
-    @State private var confirmPin = ""
-    @State private var pinError = ""
     @State private var step = 0
-    @State private var isBiometricEnabled = false
 
     @EnvironmentObject var authService: AuthService
 
@@ -49,9 +44,7 @@ struct AddGroupView: View {
             PinSetupView(
                 groupName: groupName,
                 lockType: lockType,
-                onComplete: { newPin in
-                    saveGroup(pin: newPin)
-                },
+                onComplete: { newPin in saveGroup(pin: newPin) },
                 onBack: { step = 0 }
             )
         }
@@ -88,7 +81,7 @@ struct AddGroupView: View {
                 Text(groupName.isEmpty ? "Nome do Grupo" : groupName)
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(groupName.isEmpty ? .gray : .white)
-                Text("\(selection.applicationTokens.count) app\(selection.applicationTokens.count == 1 ? "" : "s") selecionado\(selection.applicationTokens.count == 1 ? "" : "s")")
+                Text("\(selection.count) app\(selection.count == 1 ? "" : "s") selecionado\(selection.count == 1 ? "" : "s")")
                     .font(.system(size: 13))
                     .foregroundColor(.white.opacity(0.5))
             }
@@ -209,7 +202,9 @@ struct AddGroupView: View {
                 HStack {
                     Image(systemName: "plus.circle.fill")
                         .foregroundColor(Color(hex: selectedColorHex))
-                    Text(selection.applicationTokens.isEmpty ? "Selecionar Aplicativos" : "Alterar Seleção (\(selection.applicationTokens.count) apps)")
+                    Text(selection.appNames.isEmpty
+                         ? "Selecionar Aplicativos"
+                         : "Alterar Seleção (\(selection.count) apps)")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(.white)
                     Spacer()
@@ -222,7 +217,9 @@ struct AddGroupView: View {
                 .cornerRadius(14)
             }
             .buttonStyle(.plain)
-            .familyActivityPicker(isPresented: $showAppPicker, selection: $selection)
+            .sheet(isPresented: $showAppPicker) {
+                AppPickerSheet(selection: $selection)
+            }
         }
     }
 
@@ -267,8 +264,8 @@ struct AddGroupView: View {
             step = 1
         }
         .buttonStyle(PrimaryButtonStyle())
-        .disabled(groupName.isEmpty || selection.applicationTokens.isEmpty)
-        .opacity(groupName.isEmpty || selection.applicationTokens.isEmpty ? 0.5 : 1)
+        .disabled(groupName.isEmpty || selection.appNames.isEmpty)
+        .opacity(groupName.isEmpty || selection.appNames.isEmpty ? 0.5 : 1)
     }
 
     private func saveGroup(pin: String) {
@@ -284,5 +281,71 @@ struct AddGroupView: View {
 
         lockService.addGroup(group)
         dismiss()
+    }
+}
+
+struct AppPickerSheet: View {
+    @Binding var selection: AppSelection
+    @Environment(\.dismiss) var dismiss
+
+    private let appCategories: [(category: String, apps: [String])] = [
+        ("Redes Sociais", ["Instagram", "TikTok", "Twitter/X", "Facebook", "Snapchat", "Pinterest", "BeReal", "Threads"]),
+        ("Mensagens", ["WhatsApp", "Telegram", "Discord", "Messenger", "Signal"]),
+        ("Entretenimento", ["YouTube", "Netflix", "Spotify", "Twitch", "Prime Video", "Disney+"]),
+        ("Jogos", ["PUBG Mobile", "Free Fire", "Roblox", "Minecraft", "Clash Royale", "Fortnite"]),
+        ("Compras", ["Amazon", "Shopee", "Mercado Livre", "AliExpress", "iFood"]),
+    ]
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.vaultBackground.ignoresSafeArea()
+                List {
+                    ForEach(appCategories, id: \.category) { section in
+                        Section {
+                            ForEach(section.apps, id: \.self) { app in
+                                Button {
+                                    if selection.appNames.contains(app) {
+                                        selection.appNames.removeAll { $0 == app }
+                                    } else {
+                                        selection.appNames.append(app)
+                                    }
+                                } label: {
+                                    HStack {
+                                        Text(app)
+                                            .foregroundColor(.white)
+                                        Spacer()
+                                        if selection.appNames.contains(app) {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .foregroundColor(.vaultAccent)
+                                        }
+                                    }
+                                }
+                                .listRowBackground(Color.vaultCard)
+                            }
+                        } header: {
+                            Text(section.category)
+                                .foregroundColor(.white.opacity(0.5))
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                    }
+                }
+                .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
+            }
+            .navigationTitle("Selecionar Apps")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Pronto") { dismiss() }
+                        .foregroundColor(.vaultAccent)
+                }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Text("\(selection.count) selecionado\(selection.count == 1 ? "" : "s")")
+                        .font(.system(size: 13))
+                        .foregroundColor(.white.opacity(0.5))
+                }
+            }
+        }
     }
 }

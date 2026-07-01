@@ -29,14 +29,12 @@ workflows:
         script: |
           keychain initialize
           mkdir -p ~/Library/MobileDevice/Certificates
-          # Criar cert com a chave permanente (|| true caso já exista 409)
           app-store-connect certificates create \
             --type IOS_DISTRIBUTION \
             --certificate-key "$DIST_CERT_KEY" \
             --p12-password "appvault2024" \
             --p12-path ~/Library/MobileDevice/Certificates/distribution.p12 || true
-          # Deletar perfis antigos para recriar com o novo certificado + FamilyControls
-          for bid in "$BUNDLE_ID" "com.appvault.app.ShieldConfigurationExtension" "com.appvault.app.ShieldActionExtension"; do
+          for bid in "$BUNDLE_ID"; do
             profile_ids=$(app-store-connect profiles list \
               --bundle-id-identifier "$bid" \
               --profile-type IOS_APP_STORE \
@@ -47,29 +45,12 @@ workflows:
               app-store-connect profiles delete "$pid" 2>/dev/null || true
             done
           done
-          # Criar perfis novos (App IDs já têm FamilyControls activado)
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE --create \
             --certificate-key "$DIST_CERT_KEY" \
             --p12-password "appvault2024" \
             --certificates-dir ~/Library/MobileDevice/Certificates/
-          app-store-connect fetch-signing-files "com.appvault.app.ShieldConfigurationExtension" \
-            --type IOS_APP_STORE --create \
-            --certificate-key "$DIST_CERT_KEY" \
-            --p12-password "appvault2024" \
-            --certificates-dir ~/Library/MobileDevice/Certificates/
-          app-store-connect fetch-signing-files "com.appvault.app.ShieldActionExtension" \
-            --type IOS_APP_STORE --create \
-            --certificate-key "$DIST_CERT_KEY" \
-            --p12-password "appvault2024" \
-            --certificates-dir ~/Library/MobileDevice/Certificates/
           keychain add-certificates --certificate-password "appvault2024"
-          # Verificar se perfis têm FamilyControls
-          echo "=== Verificando entitlements dos perfis ==="
-          for f in ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision; do
-            echo "--- $f ---"
-            security cms -D -i "$f" 2>/dev/null | grep -A2 "family-controls" || echo "family-controls: NAO ENCONTRADO"
-          done
 
       - name: Configurar assinatura
         script: xcode-project use-profiles
@@ -92,7 +73,6 @@ workflows:
 
       - name: Exportar .ipa
         script: |
-          # Gerar ExportOptions.plist com nomes reais dos perfis instalados
           python3 - << 'PYEOF'
           import subprocess, plistlib, glob, os, sys
 

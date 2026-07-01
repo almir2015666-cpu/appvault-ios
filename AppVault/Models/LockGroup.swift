@@ -1,13 +1,17 @@
 import Foundation
-import FamilyControls
 import SwiftUI
+
+struct AppSelection: Codable {
+    var appNames: [String] = []
+    var count: Int { appNames.count }
+}
 
 struct LockGroup: Identifiable, Codable {
     var id = UUID()
     var name: String
     var colorHex: String
     var iconName: String
-    var selection: FamilyActivitySelection
+    var selection: AppSelection
     var lockType: LockType
     var pinHash: String?
     var isBiometricEnabled: Bool
@@ -38,7 +42,7 @@ struct LockGroup: Identifiable, Codable {
         self.name = name
         self.colorHex = colorHex
         self.iconName = iconName
-        self.selection = FamilyActivitySelection()
+        self.selection = AppSelection()
         self.lockType = .pin4
         self.isBiometricEnabled = false
         self.isActive = true
@@ -48,16 +52,13 @@ struct LockGroup: Identifiable, Codable {
     }
 
     var color: Color { Color(hex: colorHex) }
-
-    var appCount: Int { selection.applicationTokens.count }
+    var appCount: Int { selection.count }
 
     var isLocked: Bool {
         guard let until = lockedUntil else { return false }
         return Date() < until
     }
 }
-
-// MARK: - Presets
 
 extension LockGroup {
     static let presets: [(name: String, color: String, icon: String)] = [

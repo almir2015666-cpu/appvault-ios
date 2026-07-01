@@ -1,5 +1,4 @@
 import SwiftUI
-import FamilyControls
 
 @main
 struct AppVaultApp: App {

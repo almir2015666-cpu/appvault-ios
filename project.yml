@@ -9,7 +9,7 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
-    DEVELOPMENT_TEAM: ""  # Preenchido pelo Codemagic via signing
+    DEVELOPMENT_TEAM: ""
     TARGETED_DEVICE_FAMILY: "1"
     SUPPORTS_MAC_DESIGNED_FOR_IPAD: "NO"
 
@@ -60,65 +60,3 @@ targets:
         INFOPLIST_FILE: AppVault/Info.plist
         CODE_SIGN_STYLE: Manual
         ENABLE_BITCODE: "NO"
-    dependencies:
-      - target: ShieldConfigurationExtension
-      - target: ShieldActionExtension
-
-  ShieldConfigurationExtension:
-    type: app-extension
-    platform: iOS
-    deploymentTarget: "16.0"
-    sources:
-      - path: ShieldExtension
-        includes:
-          - ShieldConfigurationExtension.swift
-    info:
-      path: ShieldExtension/ShieldConfiguration-Info.plist
-      properties:
-        CFBundleDisplayName: ShieldConfigurationExtension
-        CFBundleIdentifier: com.appvault.app.ShieldConfigurationExtension
-        CFBundleShortVersionString: "1.0"
-        CFBundleVersion: "1"
-        NSExtension:
-          NSExtensionPointIdentifier: com.apple.shieldconfiguration
-          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldConfigurationExtension
-    entitlements:
-      path: ShieldExtension/ShieldExtension.entitlements
-    dependencies:
-      - sdk: ManagedSettings.framework
-      - sdk: ManagedSettingsUI.framework
-      - sdk: FamilyControls.framework
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.appvault.app.ShieldConfigurationExtension
-        INFOPLIST_FILE: ShieldExtension/ShieldConfiguration-Info.plist
-        CODE_SIGN_STYLE: Manual
-
-  ShieldActionExtension:
-    type: app-extension
-    platform: iOS
-    deploymentTarget: "16.0"
-    sources:
-      - path: ShieldExtension
-        includes:
-          - ShieldActionExtension.swift
-    info:
-      path: ShieldExtension/ShieldAction-Info.plist
-      properties:
-        CFBundleDisplayName: ShieldActionExtension
-        CFBundleIdentifier: com.appvault.app.ShieldActionExtension
-        CFBundleShortVersionString: "1.0"
-        CFBundleVersion: "1"
-        NSExtension:
-          NSExtensionPointIdentifier: com.apple.shieldaction
-          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldActionExtension
-    entitlements:
-      path: ShieldExtension/ShieldExtension.entitlements
-    dependencies:
-      - sdk: ManagedSettings.framework
-      - sdk: FamilyControls.framework
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.appvault.app.ShieldActionExtension
-        INFOPLIST_FILE: ShieldExtension/ShieldAction-Info.plist
-        CODE_SIGN_STYLE: Manual

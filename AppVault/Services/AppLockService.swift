@@ -1,6 +1,4 @@
 import Foundation
-import FamilyControls
-import ManagedSettings
 import Combine
 
 @MainActor
@@ -8,52 +6,30 @@ final class AppLockService: ObservableObject {
     static let shared = AppLockService()
 
     @Published var groups: [LockGroup] = []
-    @Published var isAuthorized = false
-    @Published var authorizationError: Error?
+    @Published var isAuthorized = true
 
-    private let store = ManagedSettingsStore()
     private let saveKey = "appvault_lock_groups"
 
     private init() {
         loadGroups()
-        checkAuthorization()
     }
-
-    // MARK: - Authorization
 
     func requestAuthorization() async {
-        do {
-            try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
-            isAuthorized = true
-            applyAllLocks()
-        } catch {
-            authorizationError = error
-            isAuthorized = false
-        }
+        isAuthorized = true
     }
-
-    private func checkAuthorization() {
-        isAuthorized = AuthorizationCenter.shared.authorizationStatus == .approved
-    }
-
-    // MARK: - Group Management
 
     func addGroup(_ group: LockGroup) {
         groups.append(group)
         saveGroups()
-        if group.isActive { applyLock(for: group) }
     }
 
     func updateGroup(_ group: LockGroup) {
         guard let idx = groups.firstIndex(where: { $0.id == group.id }) else { return }
-        removeLock(for: groups[idx])
         groups[idx] = group
         saveGroups()
-        if group.isActive { applyLock(for: group) }
     }
 
     func deleteGroup(_ group: LockGroup) {
-        removeLock(for: group)
         groups.removeAll { $0.id == group.id }
         KeychainService.shared.deletePin(forGroupId: group.id)
         saveGroups()
@@ -62,55 +38,17 @@ final class AppLockService: ObservableObject {
     func toggleGroup(_ group: LockGroup) {
         guard let idx = groups.firstIndex(where: { $0.id == group.id }) else { return }
         groups[idx].isActive.toggle()
-        if groups[idx].isActive {
-            applyLock(for: groups[idx])
-        } else {
-            removeLock(for: groups[idx])
-        }
         saveGroups()
-    }
-
-    // MARK: - Lock Application
-
-    func applyAllLocks() {
-        var allApps = Set<Application>()
-        for group in groups where group.isActive {
-            allApps.formUnion(group.selection.applications)
-        }
-        store.application.blockedApplications = allApps
-    }
-
-    private func applyLock(for group: LockGroup) {
-        applyAllLocks()
-    }
-
-    private func removeLock(for group: LockGroup) {
-        applyAllLocks()
     }
 
     func temporarilyUnlock(groupId: UUID, duration: TimeInterval = 300) {
         guard let idx = groups.firstIndex(where: { $0.id == groupId }) else { return }
         groups[idx].lockedUntil = nil
-        applyAllLocksExcluding(groupId: groupId)
-
         DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in
-            self?.reapplyLock(groupId: groupId)
+            guard let self, let idx = self.groups.firstIndex(where: { $0.id == groupId }) else { return }
+            self.groups[idx].lockedUntil = Date()
         }
     }
-
-    private func applyAllLocksExcluding(groupId: UUID) {
-        var allApps = Set<Application>()
-        for group in groups where group.isActive && group.id != groupId {
-            allApps.formUnion(group.selection.applications)
-        }
-        store.application.blockedApplications = allApps
-    }
-
-    private func reapplyLock(groupId: UUID) {
-        applyAllLocks()
-    }
-
-    // MARK: - Failed Attempts
 
     func recordFailedAttempt(groupId: UUID) {
         guard let idx = groups.firstIndex(where: { $0.id == groupId }) else { return }
@@ -127,8 +65,6 @@ final class AppLockService: ObservableObject {
         groups[idx].lockedUntil = nil
         saveGroups()
     }
-
-    // MARK: - Persistence
 
     private func saveGroups() {
         guard let data = try? JSONEncoder().encode(groups) else { return }
