@@ -8,7 +8,6 @@ struct AddGroupView: View {
 
     @State private var groupName = ""
     @State private var selection = FamilyActivitySelection()
-    @State private var showAppPicker = false
     @State private var step = 0
 
     private let palette = ["#6C63FF","#FF6B6B","#00C9A7","#FF9F43","#48DBFB","#FF6B9D","#54A0FF","#5F27CD"]
@@ -31,7 +30,6 @@ struct AddGroupView: View {
             }
         }
         .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { nameFocused = true } }
-        .familyActivityPicker(isPresented: $showAppPicker, selection: $selection)
     }
 
     // MARK: - Step 1: Nome + Apps
@@ -71,9 +69,10 @@ struct AddGroupView: View {
     private var appPickerButton: some View {
         VStack(alignment: .leading, spacing: 10) {
             label("Aplicativos")
-            Button {
-                nameFocused = false
-                showAppPicker = true
+            NavigationLink {
+                FamilyActivityPicker(selection: $selection)
+                    .navigationTitle("Escolher Apps")
+                    .navigationBarTitleDisplayMode(.inline)
             } label: {
                 HStack(spacing: 14) {
                     ZStack {
