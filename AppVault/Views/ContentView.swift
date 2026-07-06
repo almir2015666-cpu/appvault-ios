@@ -7,23 +7,27 @@ struct ContentView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            HomeView()
-                .environmentObject(lockService)
-                .environmentObject(authService)
-                .tabItem {
-                    Image(systemName: selectedTab == 0 ? "shield.fill" : "shield")
-                    Text("Início")
-                }
-                .tag(0)
+            NavigationStack {
+                HomeView()
+                    .environmentObject(lockService)
+                    .environmentObject(authService)
+            }
+            .tabItem {
+                Image(systemName: selectedTab == 0 ? "shield.fill" : "shield")
+                Text("Início")
+            }
+            .tag(0)
 
-            SettingsView()
-                .environmentObject(lockService)
-                .environmentObject(authService)
-                .tabItem {
-                    Image(systemName: selectedTab == 1 ? "gearshape.fill" : "gearshape")
-                    Text("Config.")
-                }
-                .tag(1)
+            NavigationStack {
+                SettingsView()
+                    .environmentObject(lockService)
+                    .environmentObject(authService)
+            }
+            .tabItem {
+                Image(systemName: selectedTab == 1 ? "gearshape.fill" : "gearshape")
+                Text("Config.")
+            }
+            .tag(1)
         }
         .tint(Color.vaultAccent)
         .preferredColorScheme(.dark)

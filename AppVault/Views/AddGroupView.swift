@@ -8,10 +8,8 @@ struct AddGroupView: View {
 
     @State private var groupName = ""
     @State private var selection = FamilyActivitySelection()
+    @State private var showAppPicker = false
     @State private var step = 0
-    @State private var navigateToPicker = false
-    @State private var showAuthAlert = false
-    @State private var requestingAuth = false
 
     private let palette = ["#6C63FF","#FF6B6B","#00C9A7","#FF9F43","#48DBFB","#FF6B9D","#54A0FF","#5F27CD"]
     private var autoColor: String { palette[lockService.groups.count % palette.count] }
@@ -19,33 +17,23 @@ struct AddGroupView: View {
     private var canContinue: Bool { !groupName.trimmingCharacters(in: .whitespaces).isEmpty && appCount > 0 }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.vaultBackground.ignoresSafeArea()
-                if step == 0 { setupStep } else { pinStep }
-            }
-            .navigationTitle(step == 0 ? "Novo Grupo" : "Criar Senha")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancelar") { dismiss() }.foregroundColor(.vaultMuted)
+        ZStack {
+            Color.vaultBackground.ignoresSafeArea()
+            if step == 0 { setupStep } else { pinStep }
+        }
+        .navigationTitle(step == 0 ? "Novo Grupo" : "Criar Senha")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(step == 0 ? "Cancelar" : "Voltar") {
+                    if step == 0 { dismiss() } else { step = 0 }
                 }
-            }
-            .navigationDestination(isPresented: $navigateToPicker) {
-                FamilyActivityPicker(selection: $selection)
-                    .navigationTitle("Escolher Apps")
-                    .navigationBarTitleDisplayMode(.inline)
+                .foregroundColor(.vaultMuted)
             }
         }
+        .familyActivityPicker(isPresented: $showAppPicker, selection: $selection)
         .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { nameFocused = true } }
-        .alert("Permissão necessária", isPresented: $showAuthAlert) {
-            Button("Abrir Ajustes") {
-                UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!)
-            }
-            Button("Cancelar", role: .cancel) {}
-        } message: {
-            Text("Ative o Tempo de Uso para o AppVault em:\nAjustes → Tempo de Uso")
-        }
     }
 
     // MARK: - Step 1: Nome + Apps
@@ -87,7 +75,7 @@ struct AddGroupView: View {
             label("Aplicativos")
             Button {
                 nameFocused = false
-                openPicker()
+                showAppPicker = true
             } label: {
                 HStack(spacing: 14) {
                     ZStack {
@@ -124,23 +112,6 @@ struct AddGroupView: View {
                 )
             }
             .buttonStyle(.plain)
-        }
-    }
-
-    private func openPicker() {
-        if lockService.isAuthorized {
-            navigateToPicker = true
-            return
-        }
-        requestingAuth = true
-        Task {
-            await lockService.requestAuthorization()
-            requestingAuth = false
-            if lockService.isAuthorized {
-                navigateToPicker = true
-            } else {
-                showAuthAlert = true
-            }
         }
     }
 

@@ -35,8 +35,10 @@ struct HomeView: View {
                 .padding(.trailing, 22)
                 .padding(.bottom, 24)
         }
-        .sheet(isPresented: $showAddGroup) {
-            AddGroupView().environmentObject(lockService)
+        .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(isPresented: $showAddGroup) {
+            AddGroupView()
+                .environmentObject(lockService)
         }
         .task {
             if !lockService.isAuthorized {
@@ -77,17 +79,15 @@ struct HomeView: View {
                     Text("Permissão necessária")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(.white)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(isDenied
-                             ? "Permissão negada. Ative manualmente nos Ajustes."
-                             : "O AppVault precisa de acesso ao Tempo de Uso.")
-                            .font(.system(size: 12))
-                            .foregroundColor(.vaultMuted)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text("Status: \(lockService.debugInfo)")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.vaultTeal)
-                    }
+                    Text(isDenied
+                         ? "Permissão negada. Ative manualmente nos Ajustes."
+                         : "O AppVault precisa de acesso ao Tempo de Uso.")
+                        .font(.system(size: 12))
+                        .foregroundColor(.vaultMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("Status: \(lockService.debugInfo)")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.vaultTeal)
                 }
             }
             if isDenied {
