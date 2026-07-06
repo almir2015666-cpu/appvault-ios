@@ -41,13 +41,28 @@ workflows:
           PROFILES_DIR=~/Library/MobileDevice/Provisioning\ Profiles
 
           if [ -n "$PROVISIONING_PROFILE_BASE64" ]; then
-            # Usar profile manual (inclui Family Controls)
             echo "Instalando provisioning profile manual..."
             echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PROFILES_DIR/AppVault_AppStore.mobileprovision"
-            echo "Profile instalado: $(security cms -D -i "$PROFILES_DIR/AppVault_AppStore.mobileprovision" 2>/dev/null | python3 -c "import plistlib,sys; d=plistlib.loads(sys.stdin.buffer.read()); print(d.get('Name','?'))")"
           else
-            # Fallback: profile via API (pode não ter Family Controls)
-            echo "AVISO: PROVISIONING_PROFILE_BASE64 não definida — usando profile via API"
+            # Ativar capabilities no bundle ID antes de criar o profile
+            BUNDLE_RES_ID=$(app-store-connect bundle-ids list \
+              --bundle-id-identifier "$BUNDLE_ID" \
+              --json 2>/dev/null | \
+              python3 -c "import json,sys; d=json.load(sys.stdin); print(d[0]['id'] if d else '')" 2>/dev/null || echo "")
+
+            if [ -n "$BUNDLE_RES_ID" ]; then
+              echo "Bundle ID resource: $BUNDLE_RES_ID"
+              echo "Ativando FAMILY_CONTROLS..."
+              app-store-connect bundle-ids enable-capability \
+                --bundle-id-resource-id "$BUNDLE_RES_ID" \
+                --capability-type FAMILY_CONTROLS 2>&1 || true
+              echo "Ativando APP_GROUPS..."
+              app-store-connect bundle-ids enable-capability \
+                --bundle-id-resource-id "$BUNDLE_RES_ID" \
+                --capability-type APP_GROUPS 2>&1 || true
+            fi
+
+            # Deletar todos os profiles existentes e criar um novo
             for pid in $(app-store-connect profiles list \
               --bundle-id-identifier "$BUNDLE_ID" \
               --profile-type IOS_APP_STORE \
@@ -56,6 +71,7 @@ workflows:
               echo "Deletando perfil $pid"
               app-store-connect profiles delete "$pid" 2>/dev/null || true
             done
+
             app-store-connect fetch-signing-files "$BUNDLE_ID" \
               --type IOS_APP_STORE --create \
               --certificate-key "$DIST_CERT_KEY" \
@@ -63,15 +79,16 @@ workflows:
               --certificates-dir ~/Library/MobileDevice/Certificates/
           fi
 
-          # Verificar se Family Controls está no profile
+          # Verificar e mostrar entitlements do profile resultante
           echo "=== ENTITLEMENTS DO PROFILE ==="
           for f in "$PROFILES_DIR"/*.mobileprovision; do
+            [ -f "$f" ] || continue
             security cms -D -i "$f" 2>/dev/null | python3 -c "
 import plistlib, sys
 d = plistlib.loads(sys.stdin.buffer.read())
 ents = d.get('Entitlements', {})
 fc = 'com.apple.developer.family-controls'
-print('family-controls presente:', fc in ents)
+print('family-controls no profile:', fc in ents)
 for k in sorted(ents.keys()):
     print(f'  {k}')
 "
