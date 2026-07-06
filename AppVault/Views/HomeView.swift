@@ -65,8 +65,11 @@ struct HomeView: View {
         .padding(.top, 20)
     }
 
+    @State private var requestingAuth = false
+
     private var authBanner: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let isDenied = lockService.authorizationStatus == .denied
+        return VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 Image(systemName: "exclamationmark.shield.fill")
                     .font(.system(size: 20))
@@ -75,22 +78,49 @@ struct HomeView: View {
                     Text("Permissão necessária")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(.white)
-                    Text("O AppVault precisa de acesso ao Tempo de Uso para funcionar.")
+                    Text(isDenied
+                         ? "Permissão negada. Ative manualmente nos Ajustes."
+                         : "O AppVault precisa de acesso ao Tempo de Uso.")
                         .font(.system(size: 12))
                         .foregroundColor(.vaultMuted)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            Button {
-                Task { await lockService.requestAuthorization() }
-            } label: {
-                Text("Permitir Acesso")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white)
+            if isDenied {
+                Button {
+                    UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!)
+                } label: {
+                    Text("Abrir Ajustes")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(LinearGradient(colors: [.vaultOrange, .vaultRed], startPoint: .leading, endPoint: .trailing).cornerRadius(12))
+                }
+                .buttonStyle(.plain)
+            } else {
+                Button {
+                    requestingAuth = true
+                    Task {
+                        await lockService.requestAuthorization()
+                        requestingAuth = false
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        if requestingAuth {
+                            ProgressView().tint(.white).scaleEffect(0.8)
+                        }
+                        Text(requestingAuth ? "Aguardando..." : "Permitir Acesso")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.white)
+                    }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(LinearGradient(colors: [.vaultOrange, .vaultRed], startPoint: .leading, endPoint: .trailing).cornerRadius(12))
+                }
+                .buttonStyle(.plain)
+                .disabled(requestingAuth)
             }
-            .buttonStyle(.plain)
         }
         .padding(16)
         .background(
