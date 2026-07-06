@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeView: View {
     @EnvironmentObject var lockService: AppLockService
     @State private var showAddGroup = false
+    @State private var requestingAuth = false
 
     private var active: [LockGroup] { lockService.groups.filter(\.isActive) }
     private var totalApps: Int { active.reduce(0) { $0 + $1.appCount } }
@@ -65,10 +66,8 @@ struct HomeView: View {
         .padding(.top, 20)
     }
 
-    @State private var requestingAuth = false
-
     private var authBanner: some View {
-        let isDenied = lockService.authorizationStatus == .denied
+        let isDenied = lockService.isAuthDenied
         return VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 Image(systemName: "exclamationmark.shield.fill")

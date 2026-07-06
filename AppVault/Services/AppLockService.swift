@@ -9,26 +9,25 @@ final class AppLockService: ObservableObject {
 
     @Published var groups: [LockGroup] = []
     @Published var isAuthorized = false
-    @Published var authorizationStatus: AuthorizationCenter.Status = .notDetermined
+    @Published var isAuthDenied = false
 
     private let saveKey = "appvault_lock_groups_v2"
     private let store = ManagedSettingsStore()
 
     private init() {
         loadGroups()
-        authorizationStatus = AuthorizationCenter.shared.authorizationStatus
-        isAuthorized = authorizationStatus == .approved
+        isAuthorized = AuthorizationCenter.shared.authorizationStatus == .approved
     }
 
     func requestAuthorization() async {
         do {
             try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
-            authorizationStatus = .approved
             isAuthorized = true
+            isAuthDenied = false
             applyShields()
         } catch {
-            authorizationStatus = AuthorizationCenter.shared.authorizationStatus
             isAuthorized = false
+            isAuthDenied = true
         }
     }
 
