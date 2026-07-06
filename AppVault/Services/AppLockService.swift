@@ -19,7 +19,7 @@ final class AppLockService: ObservableObject {
         loadGroups()
         let status = AuthorizationCenter.shared.authorizationStatus
         isAuthorized = status == .approved
-        debugInfo = "init: \(Self.statusLabel(status))"
+        debugInfo = "init: \(status)"
     }
 
     func requestAuthorization() async {
@@ -32,7 +32,7 @@ final class AppLockService: ObservableObject {
             return
         }
 
-        debugInfo = "status: \(Self.statusLabel(currentStatus)) | aguardando..."
+        debugInfo = "status: \(currentStatus) | aguardando..."
         try? await Task.sleep(nanoseconds: 800_000_000)
 
         for attempt in 1...3 {
@@ -55,15 +55,6 @@ final class AppLockService: ObservableObject {
                     debugInfo = "[\(nsErr.domain) \(nsErr.code)] \(nsErr.localizedDescription)"
                 }
             }
-        }
-    }
-
-    private static func statusLabel(_ status: AuthorizationCenter.AuthorizationStatus) -> String {
-        switch status {
-        case .notDetermined: return "notDetermined"
-        case .denied:        return "denied"
-        case .approved:      return "approved"
-        @unknown default:    return "unknown(\(status))"
         }
     }
 
