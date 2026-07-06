@@ -17,21 +17,53 @@ final class AppLockService: ObservableObject {
 
     private init() {
         loadGroups()
-        isAuthorized = AuthorizationCenter.shared.authorizationStatus == .approved
+        let status = AuthorizationCenter.shared.authorizationStatus
+        isAuthorized = status == .approved
+        debugInfo = "init: \(Self.statusLabel(status))"
     }
 
     func requestAuthorization() async {
-        debugInfo = "chamando requestAuthorization..."
-        do {
-            try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
+        let currentStatus = AuthorizationCenter.shared.authorizationStatus
+        guard currentStatus != .approved else {
             isAuthorized = true
             isAuthDenied = false
             debugInfo = "AUTORIZADO ✓"
             applyShields()
-        } catch {
-            isAuthorized = false
-            isAuthDenied = true
-            debugInfo = "ERRO: \(error.localizedDescription)"
+            return
+        }
+
+        debugInfo = "status: \(Self.statusLabel(currentStatus)) | aguardando..."
+        try? await Task.sleep(nanoseconds: 800_000_000)
+
+        for attempt in 1...3 {
+            debugInfo = "tentativa \(attempt)/3..."
+            do {
+                try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
+                isAuthorized = true
+                isAuthDenied = false
+                debugInfo = "AUTORIZADO ✓"
+                applyShields()
+                return
+            } catch {
+                let nsErr = error as NSError
+                if attempt < 3 {
+                    debugInfo = "tentativa \(attempt) falhou (\(nsErr.code)) — tentando de novo..."
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                } else {
+                    isAuthorized = false
+                    isAuthDenied = true
+                    debugInfo = "[\(nsErr.domain) \(nsErr.code)] \(nsErr.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    private static func statusLabel(_ status: AuthorizationCenter.AuthorizationStatus) -> String {
+        switch status {
+        case .notDetermined: return "notDetermined"
+        case .denied:        return "denied"
+        case .approved:      return "approved"
+        @unknown default:    return "unknown(\(status))"
         }
     }
 
