@@ -44,7 +44,7 @@ struct AddGroupView: View {
             }
             Button("Cancelar", role: .cancel) {}
         } message: {
-            Text("Ative o Tempo de Tela para o AppVault em:\nAjustes → Tempo de Tela")
+            Text("Ative o Tempo de Uso para o AppVault em:\nAjustes → Tempo de Uso")
         }
     }
 
