@@ -32,6 +32,11 @@ struct HomeView: View {
         .sheet(isPresented: $showAddGroup) {
             AddGroupView().environmentObject(lockService)
         }
+        .task {
+            if !lockService.isAuthorized {
+                await lockService.requestAuthorization()
+            }
+        }
     }
 
     // MARK: Header

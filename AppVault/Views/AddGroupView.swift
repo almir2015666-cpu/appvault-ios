@@ -9,6 +9,9 @@ struct AddGroupView: View {
     @State private var groupName = ""
     @State private var selection = FamilyActivitySelection()
     @State private var step = 0
+    @State private var navigateToPicker = false
+    @State private var showAuthAlert = false
+    @State private var requestingAuth = false
 
     private let palette = ["#6C63FF","#FF6B6B","#00C9A7","#FF9F43","#48DBFB","#FF6B9D","#54A0FF","#5F27CD"]
     private var autoColor: String { palette[lockService.groups.count % palette.count] }
@@ -28,8 +31,21 @@ struct AddGroupView: View {
                     Button("Cancelar") { dismiss() }.foregroundColor(.vaultMuted)
                 }
             }
+            .navigationDestination(isPresented: $navigateToPicker) {
+                FamilyActivityPicker(selection: $selection)
+                    .navigationTitle("Escolher Apps")
+                    .navigationBarTitleDisplayMode(.inline)
+            }
         }
         .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { nameFocused = true } }
+        .alert("Permissão necessária", isPresented: $showAuthAlert) {
+            Button("Abrir Ajustes") {
+                UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!)
+            }
+            Button("Cancelar", role: .cancel) {}
+        } message: {
+            Text("Ative o Tempo de Tela para o AppVault em:\nAjustes → Tempo de Tela")
+        }
     }
 
     // MARK: - Step 1: Nome + Apps
@@ -69,10 +85,9 @@ struct AddGroupView: View {
     private var appPickerButton: some View {
         VStack(alignment: .leading, spacing: 10) {
             label("Aplicativos")
-            NavigationLink {
-                FamilyActivityPicker(selection: $selection)
-                    .navigationTitle("Escolher Apps")
-                    .navigationBarTitleDisplayMode(.inline)
+            Button {
+                nameFocused = false
+                openPicker()
             } label: {
                 HStack(spacing: 14) {
                     ZStack {
@@ -109,6 +124,23 @@ struct AddGroupView: View {
                 )
             }
             .buttonStyle(.plain)
+        }
+    }
+
+    private func openPicker() {
+        if lockService.isAuthorized {
+            navigateToPicker = true
+            return
+        }
+        requestingAuth = true
+        Task {
+            await lockService.requestAuthorization()
+            requestingAuth = false
+            if lockService.isAuthorized {
+                navigateToPicker = true
+            } else {
+                showAuthAlert = true
+            }
         }
     }
 
