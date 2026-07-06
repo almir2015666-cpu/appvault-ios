@@ -1,52 +1,78 @@
 import Foundation
 import Combine
+import FamilyControls
+import ManagedSettings
 
 @MainActor
 final class AppLockService: ObservableObject {
     static let shared = AppLockService()
 
     @Published var groups: [LockGroup] = []
-    @Published var isAuthorized = true
+    @Published var isAuthorized = false
 
-    private let saveKey = "appvault_lock_groups"
+    private let saveKey = "appvault_lock_groups_v2"
+    private let store = ManagedSettingsStore()
 
     private init() {
         loadGroups()
+        isAuthorized = AuthorizationCenter.shared.authorizationStatus == .approved
     }
 
     func requestAuthorization() async {
-        isAuthorized = true
+        do {
+            try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
+            isAuthorized = true
+            applyShields()
+        } catch {
+            isAuthorized = false
+        }
+    }
+
+    func applyShields() {
+        let activeGroups = groups.filter { $0.isActive }
+        let allTokens = activeGroups.reduce(into: Set<ApplicationToken>()) { result, group in
+            result.formUnion(group.selection.applicationTokens)
+        }
+        store.shield.applications = allTokens.isEmpty ? nil : allTokens
     }
 
     func addGroup(_ group: LockGroup) {
         groups.append(group)
         saveGroups()
+        applyShields()
     }
 
     func updateGroup(_ group: LockGroup) {
         guard let idx = groups.firstIndex(where: { $0.id == group.id }) else { return }
         groups[idx] = group
         saveGroups()
+        applyShields()
     }
 
     func deleteGroup(_ group: LockGroup) {
         groups.removeAll { $0.id == group.id }
         KeychainService.shared.deletePin(forGroupId: group.id)
         saveGroups()
+        applyShields()
     }
 
     func toggleGroup(_ group: LockGroup) {
         guard let idx = groups.firstIndex(where: { $0.id == group.id }) else { return }
         groups[idx].isActive.toggle()
         saveGroups()
+        applyShields()
     }
 
     func temporarilyUnlock(groupId: UUID, duration: TimeInterval = 300) {
         guard let idx = groups.firstIndex(where: { $0.id == groupId }) else { return }
-        groups[idx].lockedUntil = nil
+        groups[idx].isActive = false
+        saveGroups()
+        applyShields()
         DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in
             guard let self, let idx = self.groups.firstIndex(where: { $0.id == groupId }) else { return }
-            self.groups[idx].lockedUntil = Date()
+            self.groups[idx].isActive = true
+            self.saveGroups()
+            self.applyShields()
         }
     }
 

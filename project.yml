@@ -89,6 +89,9 @@ targets:
           - shakeit
     entitlements:
       path: AppVault/AppVault.entitlements
+    dependencies:
+      - sdk: FamilyControls.framework
+      - sdk: ManagedSettings.framework
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.appvault.app

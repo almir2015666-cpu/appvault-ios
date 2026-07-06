@@ -1,4 +1,5 @@
 import SwiftUI
+import FamilyControls
 
 @main
 struct AppVaultApp: App {
@@ -8,14 +9,19 @@ struct AppVaultApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if hasCompletedOnboarding {
-                ContentView()
-                    .environmentObject(lockService)
-                    .environmentObject(authService)
-            } else {
-                OnboardingView()
-                    .environmentObject(lockService)
-                    .environmentObject(authService)
+            Group {
+                if hasCompletedOnboarding {
+                    ContentView()
+                        .environmentObject(lockService)
+                        .environmentObject(authService)
+                } else {
+                    OnboardingView()
+                        .environmentObject(lockService)
+                        .environmentObject(authService)
+                }
+            }
+            .task {
+                await lockService.requestAuthorization()
             }
         }
     }
