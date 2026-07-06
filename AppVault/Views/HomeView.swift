@@ -77,12 +77,17 @@ struct HomeView: View {
                     Text("Permissão necessária")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(.white)
-                    Text(isDenied
-                         ? "Permissão negada. Ative manualmente nos Ajustes."
-                         : "O AppVault precisa de acesso ao Tempo de Uso.")
-                        .font(.system(size: 12))
-                        .foregroundColor(.vaultMuted)
-                        .fixedSize(horizontal: false, vertical: true)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(isDenied
+                             ? "Permissão negada. Ative manualmente nos Ajustes."
+                             : "O AppVault precisa de acesso ao Tempo de Uso.")
+                            .font(.system(size: 12))
+                            .foregroundColor(.vaultMuted)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text("Status: \(lockService.debugInfo)")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.vaultTeal)
+                    }
                 }
             }
             if isDenied {

@@ -10,6 +10,7 @@ final class AppLockService: ObservableObject {
     @Published var groups: [LockGroup] = []
     @Published var isAuthorized = false
     @Published var isAuthDenied = false
+    @Published var debugInfo = "aguardando..."
 
     private let saveKey = "appvault_lock_groups_v2"
     private let store = ManagedSettingsStore()
@@ -20,14 +21,17 @@ final class AppLockService: ObservableObject {
     }
 
     func requestAuthorization() async {
+        debugInfo = "chamando requestAuthorization..."
         do {
             try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
             isAuthorized = true
             isAuthDenied = false
+            debugInfo = "AUTORIZADO ✓"
             applyShields()
         } catch {
             isAuthorized = false
             isAuthDenied = true
+            debugInfo = "ERRO: \(error.localizedDescription)"
         }
     }
 
