@@ -29,27 +29,54 @@ workflows:
         script: |
           keychain initialize
           mkdir -p ~/Library/MobileDevice/Certificates
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+
+          # Instalar certificado de distribuição
           app-store-connect certificates create \
             --type IOS_DISTRIBUTION \
             --certificate-key "$DIST_CERT_KEY" \
             --p12-password "appvault2024" \
             --p12-path ~/Library/MobileDevice/Certificates/distribution.p12 || true
-          for bid in "$BUNDLE_ID"; do
-            profile_ids=$(app-store-connect profiles list \
-              --bundle-id-identifier "$bid" \
+
+          PROFILES_DIR=~/Library/MobileDevice/Provisioning\ Profiles
+
+          if [ -n "$PROVISIONING_PROFILE_BASE64" ]; then
+            # Usar profile manual (inclui Family Controls)
+            echo "Instalando provisioning profile manual..."
+            echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PROFILES_DIR/AppVault_AppStore.mobileprovision"
+            echo "Profile instalado: $(security cms -D -i "$PROFILES_DIR/AppVault_AppStore.mobileprovision" 2>/dev/null | python3 -c "import plistlib,sys; d=plistlib.loads(sys.stdin.buffer.read()); print(d.get('Name','?'))")"
+          else
+            # Fallback: profile via API (pode não ter Family Controls)
+            echo "AVISO: PROVISIONING_PROFILE_BASE64 não definida — usando profile via API"
+            for pid in $(app-store-connect profiles list \
+              --bundle-id-identifier "$BUNDLE_ID" \
               --profile-type IOS_APP_STORE \
               --json 2>/dev/null | \
-              python3 -c "import json,sys; [print(x['id']) for x in json.load(sys.stdin)]" 2>/dev/null || true)
-            for pid in $profile_ids; do
+              python3 -c "import json,sys; [print(x['id']) for x in json.load(sys.stdin)]" 2>/dev/null || true); do
               echo "Deletando perfil $pid"
               app-store-connect profiles delete "$pid" 2>/dev/null || true
             done
+            app-store-connect fetch-signing-files "$BUNDLE_ID" \
+              --type IOS_APP_STORE --create \
+              --certificate-key "$DIST_CERT_KEY" \
+              --p12-password "appvault2024" \
+              --certificates-dir ~/Library/MobileDevice/Certificates/
+          fi
+
+          # Verificar se Family Controls está no profile
+          echo "=== ENTITLEMENTS DO PROFILE ==="
+          for f in "$PROFILES_DIR"/*.mobileprovision; do
+            security cms -D -i "$f" 2>/dev/null | python3 -c "
+import plistlib, sys
+d = plistlib.loads(sys.stdin.buffer.read())
+ents = d.get('Entitlements', {})
+fc = 'com.apple.developer.family-controls'
+print('family-controls presente:', fc in ents)
+for k in sorted(ents.keys()):
+    print(f'  {k}')
+"
           done
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE --create \
-            --certificate-key "$DIST_CERT_KEY" \
-            --p12-password "appvault2024" \
-            --certificates-dir ~/Library/MobileDevice/Certificates/
+
           keychain add-certificates --certificate-password "appvault2024"
 
       - name: Configurar assinatura
