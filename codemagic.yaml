@@ -83,15 +83,7 @@ workflows:
           echo "=== ENTITLEMENTS DO PROFILE ==="
           for f in "$PROFILES_DIR"/*.mobileprovision; do
             [ -f "$f" ] || continue
-            security cms -D -i "$f" 2>/dev/null | python3 -c "
-import plistlib, sys
-d = plistlib.loads(sys.stdin.buffer.read())
-ents = d.get('Entitlements', {})
-fc = 'com.apple.developer.family-controls'
-print('family-controls no profile:', fc in ents)
-for k in sorted(ents.keys()):
-    print(f'  {k}')
-"
+            security cms -D -i "$f" 2>/dev/null | python3 -c "import plistlib,sys; d=plistlib.loads(sys.stdin.buffer.read()); ents=d.get('Entitlements',{}); fc='com.apple.developer.family-controls'; print('family-controls no profile:', fc in ents); [print(' ',k) for k in sorted(ents.keys())]"
           done
 
           keychain add-certificates --certificate-password "appvault2024"
