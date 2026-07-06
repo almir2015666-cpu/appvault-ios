@@ -14,6 +14,11 @@ struct HomeView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
                     header
+                    if !lockService.isAuthorized {
+                        authBanner
+                            .padding(.horizontal, 20)
+                            .padding(.top, 16)
+                    }
                     if !lockService.groups.isEmpty {
                         summaryCard
                             .padding(.horizontal, 20)
@@ -58,6 +63,41 @@ struct HomeView: View {
         }
         .padding(.horizontal, 22)
         .padding(.top, 20)
+    }
+
+    private var authBanner: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: "exclamationmark.shield.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(.vaultOrange)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Permissão necessária")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                    Text("O AppVault precisa de acesso ao Tempo de Uso para funcionar.")
+                        .font(.system(size: 12))
+                        .foregroundColor(.vaultMuted)
+                }
+            }
+            Button {
+                Task { await lockService.requestAuthorization() }
+            } label: {
+                Text("Permitir Acesso")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(LinearGradient(colors: [.vaultOrange, .vaultRed], startPoint: .leading, endPoint: .trailing).cornerRadius(12))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.vaultOrange.opacity(0.08))
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.vaultOrange.opacity(0.3), lineWidth: 1))
+        )
     }
 
     private var statusPill: some View {
