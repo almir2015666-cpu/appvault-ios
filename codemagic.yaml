@@ -31,7 +31,6 @@ workflows:
           mkdir -p ~/Library/MobileDevice/Certificates
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
 
-          # Instalar certificado de distribuição
           app-store-connect certificates create \
             --type IOS_DISTRIBUTION \
             --certificate-key "$DIST_CERT_KEY" \
@@ -39,14 +38,12 @@ workflows:
             --p12-path ~/Library/MobileDevice/Certificates/distribution.p12 || true
 
           PROFILES_DIR=~/Library/MobileDevice/Provisioning\ Profiles
-
           XCODE_PROFILES="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
 
           if [ -n "$PROVISIONING_PROFILE_BASE64" ]; then
             echo "Instalando provisioning profile manual..."
             echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PROFILES_DIR/AppVault_AppStore.mobileprovision"
           else
-            # Obter resource IDs de todos os bundle IDs do app
             ALL_BUNDLE_RES_IDS=$(app-store-connect bundle-ids list \
               --bundle-id-identifier "$BUNDLE_ID" \
               --json 2>/dev/null | \
@@ -56,11 +53,13 @@ workflows:
 
             if [ -n "$MAIN_BUNDLE_RES_ID" ]; then
               echo "Bundle ID resource: $MAIN_BUNDLE_RES_ID"
-              echo "Ativando FAMILY_CONTROLS..."
-              app-store-connect bundle-ids enable-capabilities "$MAIN_BUNDLE_RES_ID" FAMILY_CONTROLS 2>&1 || true
+              echo "=== Capabilities atuais no bundle ID ==="
+              app-store-connect bundle-ids capabilities "$MAIN_BUNDLE_RES_ID" --json 2>/dev/null | \
+                python3 -c "import json,sys; raw=sys.stdin.read(); d=json.loads(raw) if raw.strip() else []; [print(' -', x.get('attributes',{}).get('capabilityType','?')) for x in d]" 2>/dev/null || true
+              echo "Ativando App Groups..."
+              app-store-connect bundle-ids enable-capabilities "$MAIN_BUNDLE_RES_ID" --capability "App Groups" 2>&1 || true
             fi
 
-            # Deletar todos os profiles existentes via bundle ID resource IDs
             for brid in $ALL_BUNDLE_RES_IDS; do
               for pid in $(app-store-connect bundle-ids profiles "$brid" \
                 --profile-type IOS_APP_STORE \
@@ -78,11 +77,19 @@ workflows:
               --certificates-dir ~/Library/MobileDevice/Certificates/
           fi
 
-          # Verificar entitlements no profile do app principal
-          echo "=== ENTITLEMENTS DO PROFILE ==="
-          for f in "$XCODE_PROFILES"/*.mobileprovision; do
+          echo "=== ENTITLEMENTS COMPLETOS DO PROFILE ==="
+          for f in "$XCODE_PROFILES"/*.mobileprovision "$PROFILES_DIR"/*.mobileprovision; do
             [ -f "$f" ] || continue
-            security cms -D -i "$f" 2>/dev/null | python3 -c "import plistlib,sys; d=plistlib.loads(sys.stdin.buffer.read()); ents=d.get('Entitlements',{}); bid=ents.get('application-identifier',''); fc='com.apple.developer.family-controls'; print(bid,'→ family-controls:', fc in ents) if 'appvault.app' in bid and 'Extension' not in bid else None"
+            security cms -D -i "$f" 2>/dev/null | python3 -c "
+import plistlib,sys
+d=plistlib.loads(sys.stdin.buffer.read())
+ents=d.get('Entitlements',{})
+bid=ents.get('application-identifier','')
+if 'appvault.app' in bid and 'Extension' not in bid:
+    print('Bundle:', bid)
+    for k,v in ents.items():
+        print('  ', k, '=', v)
+" 2>/dev/null || true
           done
 
           keychain add-certificates --certificate-password "appvault2024"
@@ -105,6 +112,23 @@ workflows:
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             archive
+
+      - name: Verificar entitlements do binário
+        script: |
+          APP_PATH=$(find build/AppVault.xcarchive -name "AppVault.app" -not -path "*.dSYM*" -type d | head -1)
+          echo "=== ENTITLEMENTS NO BINÁRIO ASSINADO ==="
+          codesign -d --entitlements - "$APP_PATH" 2>/dev/null | python3 -c "
+import plistlib,sys
+raw=sys.stdin.buffer.read()
+if not raw.strip():
+    print('(vazio)'); exit()
+try:
+    d=plistlib.loads(raw)
+    for k,v in d.items():
+        print(' ', k, '=', v)
+except Exception as e:
+    print('raw:', raw[:500])
+" 2>/dev/null || true
 
       - name: Exportar .ipa
         script: |
