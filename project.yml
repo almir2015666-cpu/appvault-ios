@@ -155,3 +155,4 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.appvault.app.ShieldActionExtension
         CODE_SIGN_STYLE: Manual
         ENABLE_BITCODE: "NO"
+        APPLICATION_EXTENSION_API_ONLY: "NO"
