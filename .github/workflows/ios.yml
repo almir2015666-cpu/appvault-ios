@@ -74,6 +74,17 @@ jobs:
       - name: Gerar projeto Xcode
         run: xcodegen generate
 
+      - name: Número de build único
+        run: |
+          BUILD_NUM="$(date +%s)"
+          echo "Build number: $BUILD_NUM"
+          for plist in \
+            AppVault/Info.plist \
+            ShieldExtension/ShieldConfigurationExtension-Info.plist \
+            ShieldExtension/ShieldActionExtension-Info.plist; do
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" "$plist"
+          done
+
       - name: Instalar certificado e perfis
         run: |
           set -e
