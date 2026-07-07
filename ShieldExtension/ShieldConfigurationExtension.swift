@@ -5,21 +5,19 @@ import UIKit
 final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
 
     private func makeShield() -> ShieldConfiguration {
-        ShieldConfiguration(
-            backgroundColor: UIColor(red: 0.05, green: 0.05, blue: 0.1, alpha: 0.97),
-            icon: UIImage(systemName: "lock.shield.fill")?
-                .withTintColor(UIColor(red: 0.26, green: 0.38, blue: 0.93, alpha: 1), renderingMode: .alwaysOriginal),
-            title: ShieldConfiguration.Label(text: "App Bloqueado", color: .white),
+        let accent = UIColor(red: 0.26, green: 0.38, blue: 0.93, alpha: 1)
+        return ShieldConfiguration(
+            backgroundBlurStyle: .systemMaterial,
+            backgroundColor: nil,
+            icon: UIImage(systemName: "lock.fill")?
+                .withTintColor(accent, renderingMode: .alwaysOriginal),
+            title: ShieldConfiguration.Label(text: "App Bloqueado", color: .label),
             subtitle: ShieldConfiguration.Label(
-                text: "Protegido pelo AppVault",
-                color: UIColor.white.withAlphaComponent(0.6)
+                text: "Abra o AppVault para desbloquear",
+                color: .secondaryLabel
             ),
-            primaryButtonLabel: ShieldConfiguration.Label(text: "Inserir Senha", color: .white),
-            primaryButtonBackgroundColor: UIColor(red: 0.26, green: 0.38, blue: 0.93, alpha: 1),
-            secondaryButtonLabel: ShieldConfiguration.Label(
-                text: "Cancelar",
-                color: UIColor.white.withAlphaComponent(0.5)
-            )
+            primaryButtonLabel: ShieldConfiguration.Label(text: "Fechar", color: .white),
+            primaryButtonBackgroundColor: accent
         )
     }
 
