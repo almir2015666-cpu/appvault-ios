@@ -86,18 +86,7 @@ workflows:
             ALL_BUNDLE_RES_IDS="$ALL_BUNDLE_RES_IDS $CONFIG_RES_ID $ACTION_RES_ID"
 
             # Deletar todos os profiles ativos usando profiles list (mais confiavel que bundle-ids profiles)
-            ALL_PROFILE_IDS=$(app-store-connect profiles list \
-              --profile-type IOS_APP_STORE \
-              --json 2>/dev/null | \
-              python3 -c "
-import json,sys
-profiles=json.load(sys.stdin)
-for p in profiles:
-    pid=p.get('id','')
-    name=p.get('name','') or p.get('attributes',{}).get('name','')
-    if pid and 'appvault' in name.lower():
-        print(pid)
-" 2>/dev/null || true)
+            ALL_PROFILE_IDS=$(app-store-connect profiles list --profile-type IOS_APP_STORE --json 2>/dev/null | python3 -c "import json,sys; [print(p['id']) for p in json.load(sys.stdin) if p.get('id') and 'appvault' in (p.get('name') or p.get('attributes',{}).get('name','')).lower()]" 2>/dev/null || true)
             for pid in $ALL_PROFILE_IDS; do
               echo "Deletando perfil: $pid"
               app-store-connect profiles delete "$pid" 2>&1 || true
