@@ -20,6 +20,12 @@ struct AppVaultApp: App {
                         .environmentObject(authService)
                 }
             }
+            .onOpenURL { url in
+                guard url.scheme == "appvault" else { return }
+                if url.host == "unlock" {
+                    lockService.showingUnlockFromShield = true
+                }
+            }
             .task {
                 await lockService.requestAuthorization()
             }

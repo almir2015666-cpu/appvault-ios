@@ -96,9 +96,62 @@ targets:
     dependencies:
       - sdk: FamilyControls.framework
       - sdk: ManagedSettings.framework
+      - target: ShieldConfigurationExtension
+        embed: true
+      - target: ShieldActionExtension
+        embed: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.appvault.app
         INFOPLIST_FILE: AppVault/Info.plist
+        CODE_SIGN_STYLE: Manual
+        ENABLE_BITCODE: "NO"
+
+  ShieldConfigurationExtension:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: ShieldExtension/ShieldConfigurationExtension.swift
+    info:
+      path: ShieldExtension/ShieldConfigurationExtension-Info.plist
+      properties:
+        CFBundleDisplayName: ShieldConfigurationExtension
+        CFBundleIdentifier: com.appvault.app.ShieldConfigurationExtension
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.managed-settings.shield.configuration
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldConfigurationExtension
+    dependencies:
+      - sdk: ManagedSettings.framework
+      - sdk: ManagedSettingsUI.framework
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.appvault.app.ShieldConfigurationExtension
+        CODE_SIGN_STYLE: Manual
+        ENABLE_BITCODE: "NO"
+
+  ShieldActionExtension:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: ShieldExtension/ShieldActionExtension.swift
+    info:
+      path: ShieldExtension/ShieldActionExtension-Info.plist
+      properties:
+        CFBundleDisplayName: ShieldActionExtension
+        CFBundleIdentifier: com.appvault.app.ShieldActionExtension
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.managed-settings.shield.action
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldActionExtension
+    dependencies:
+      - sdk: ManagedSettings.framework
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.appvault.app.ShieldActionExtension
         CODE_SIGN_STYLE: Manual
         ENABLE_BITCODE: "NO"

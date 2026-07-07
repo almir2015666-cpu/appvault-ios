@@ -11,6 +11,7 @@ final class AppLockService: ObservableObject {
     @Published var isAuthorized = false
     @Published var isAuthDenied = false
     @Published var debugInfo = "aguardando..."
+    @Published var showingUnlockFromShield = false
 
     private let saveKey = "appvault_lock_groups_v2"
     private let store = ManagedSettingsStore()

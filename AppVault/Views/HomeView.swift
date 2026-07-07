@@ -4,6 +4,8 @@ struct HomeView: View {
     @EnvironmentObject var lockService: AppLockService
     @State private var showAddGroup = false
     @State private var requestingAuth = false
+    @State private var selectedGroupId: UUID?
+    @State private var showGroupDetail = false
 
     private var active: [LockGroup] { lockService.groups.filter(\.isActive) }
     private var totalApps: Int { active.reduce(0) { $0 + $1.appCount } }
@@ -39,6 +41,11 @@ struct HomeView: View {
         .navigationDestination(isPresented: $showAddGroup) {
             AddGroupView()
                 .environmentObject(lockService)
+        }
+        .navigationDestination(isPresented: $showGroupDetail) {
+            if let id = selectedGroupId {
+                GroupDetailView(groupId: id)
+            }
         }
         .task {
             if !lockService.isAuthorized {
@@ -210,7 +217,10 @@ struct HomeView: View {
                         LockGroupCard(
                             group: group,
                             onToggle: { lockService.toggleGroup(group) },
-                            onTap: {}
+                            onTap: {
+                                selectedGroupId = group.id
+                                showGroupDetail = true
+                            }
                         )
                         .padding(.horizontal, 20)
                     }

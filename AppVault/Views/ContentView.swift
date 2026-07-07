@@ -32,6 +32,9 @@ struct ContentView: View {
         .tint(Color.vaultAccent)
         .preferredColorScheme(.dark)
         .onAppear { configureTabBar() }
+        .sheet(isPresented: $lockService.showingUnlockFromShield) {
+            QuickUnlockView()
+        }
     }
 
     private func configureTabBar() {
