@@ -69,7 +69,7 @@ jobs:
       - name: Instalar ferramentas
         run: |
           brew install xcodegen
-          pip3 install codemagic-cli-tools
+          pip3 install --break-system-packages codemagic-cli-tools
 
       - name: Gerar projeto Xcode
         run: xcodegen generate
