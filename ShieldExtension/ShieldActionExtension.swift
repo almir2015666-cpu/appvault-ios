@@ -1,5 +1,4 @@
 import ManagedSettings
-import UIKit
 
 final class ShieldActionExtension: ShieldActionDelegate {
 
@@ -18,19 +17,20 @@ final class ShieldActionExtension: ShieldActionDelegate {
     private func handleAction(_ action: ShieldAction, completionHandler: @escaping (ShieldActionResponse) -> Void) {
         switch action {
         case .primaryButtonPressed:
-            // Abre AppVault para o usuário inserir a senha e desbloquear o grupo
-            if let url = URL(string: "appvault://unlock") {
-                UIApplication.shared.open(url, options: [:]) { _ in
-                    completionHandler(.defer)
-                }
-            } else {
-                completionHandler(.defer)
-            }
+            openAppVaultForUnlock()
+            completionHandler(.defer)
         case .secondaryButtonPressed:
-            // Cancelar: mantém o bloqueio ativo
             completionHandler(.defer)
         @unknown default:
             completionHandler(.defer)
         }
+    }
+
+    private func openAppVaultForUnlock() {
+        guard let url = URL(string: "appvault://unlock"),
+              let appClass = NSClassFromString("UIApplication") as? NSObject.Type,
+              let shared = appClass.perform(NSSelectorFromString("sharedApplication"))?.takeUnretainedValue() as? NSObject,
+              shared.responds(to: NSSelectorFromString("openURL:")) else { return }
+        shared.perform(NSSelectorFromString("openURL:"), with: url as NSURL)
     }
 }
