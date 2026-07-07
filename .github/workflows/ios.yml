@@ -40,77 +40,93 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     needs: build-simulator
     env:
-      TEAM_ID: 66U94U6Q5H
-      APP_STORE_KEY_ID: ${{ secrets.APP_STORE_KEY_ID }}
-      APP_STORE_ISSUER_ID: ${{ secrets.APP_STORE_ISSUER_ID }}
+      CERTIFICATE_BASE64: ${{ secrets.CERTIFICATE_BASE64 }}
+      CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+      PROFILE_APP_BASE64: ${{ secrets.PROFILE_APP_BASE64 }}
+      PROFILE_SHIELD_CONFIG_BASE64: ${{ secrets.PROFILE_SHIELD_CONFIG_BASE64 }}
+      PROFILE_SHIELD_ACTION_BASE64: ${{ secrets.PROFILE_SHIELD_ACTION_BASE64 }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_ISSUER_ID }}
+      APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_KEY_ID }}
       APP_STORE_KEY_BASE64: ${{ secrets.APP_STORE_KEY_BASE64 }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validar secrets (fail-fast, mensagem clara)
+      - name: Validar secrets (fail-fast)
         run: |
           missing=""
-          [ -z "$APP_STORE_KEY_ID" ]    && missing="$missing APP_STORE_KEY_ID"
-          [ -z "$APP_STORE_ISSUER_ID" ] && missing="$missing APP_STORE_ISSUER_ID"
-          [ -z "$APP_STORE_KEY_BASE64" ] && missing="$missing APP_STORE_KEY_BASE64"
+          for v in CERTIFICATE_BASE64 CERTIFICATE_PASSWORD PROFILE_APP_BASE64 \
+                   PROFILE_SHIELD_CONFIG_BASE64 PROFILE_SHIELD_ACTION_BASE64 \
+                   APP_STORE_CONNECT_ISSUER_ID APP_STORE_CONNECT_KEY_IDENTIFIER APP_STORE_KEY_BASE64; do
+            eval "val=\${$v}"
+            [ -z "$val" ] && missing="$missing $v"
+          done
           if [ -n "$missing" ]; then
-            echo "::error::Secrets faltando no repo:$missing"
-            echo "Configure em: Settings > Secrets and variables > Actions."
+            echo "::error::Secrets faltando:$missing"
             exit 1
           fi
-          echo "Todos os secrets ASC presentes."
+          echo "Todos os secrets presentes."
 
-      - name: Instalar XcodeGen
-        run: brew install xcodegen
+      - name: Instalar ferramentas
+        run: |
+          brew install xcodegen
+          pip3 install codemagic-cli-tools
 
       - name: Gerar projeto Xcode
         run: xcodegen generate
 
-      - name: Preparar chave da App Store Connect
+      - name: Instalar certificado e perfis
         run: |
-          mkdir -p ~/private_keys
-          echo "$APP_STORE_KEY_BASE64" | base64 --decode > ~/private_keys/AuthKey_${APP_STORE_KEY_ID}.p8
-          echo "Chave gravada em ~/private_keys/AuthKey_${APP_STORE_KEY_ID}.p8"
+          set -e
+          keychain initialize
+          echo "$CERTIFICATE_BASE64" | base64 --decode > "$RUNNER_TEMP/dist.p12"
+          keychain add-certificates \
+            --certificate "$RUNNER_TEMP/dist.p12" \
+            --certificate-password "$CERTIFICATE_PASSWORD"
 
-      - name: Build e Archive (assinatura automática)
+          PROFILES_HOME="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$PROFILES_HOME"
+          echo "$PROFILE_APP_BASE64"          | base64 --decode > "$PROFILES_HOME/appvault_app.mobileprovision"
+          echo "$PROFILE_SHIELD_CONFIG_BASE64" | base64 --decode > "$PROFILES_HOME/appvault_shield_config.mobileprovision"
+          echo "$PROFILE_SHIELD_ACTION_BASE64" | base64 --decode > "$PROFILES_HOME/appvault_shield_action.mobileprovision"
+
+          # Configura os targets do projeto (specifier + identidade) a partir dos perfis instalados
+          xcode-project use-profiles \
+            --export-options-plist "$RUNNER_TEMP/export_options.plist"
+
+      - name: Build e Archive (assinatura manual)
         run: |
           set -o pipefail
           xcodebuild archive \
             -project AppVault.xcodeproj \
             -scheme AppVault \
             -configuration Release \
-            -archivePath build/AppVault.xcarchive \
+            -archivePath "$RUNNER_TEMP/AppVault.xcarchive" \
             -destination "generic/platform=iOS" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/private_keys/AuthKey_${APP_STORE_KEY_ID}.p8 \
-            -authenticationKeyID "$APP_STORE_KEY_ID" \
-            -authenticationKeyIssuerID "$APP_STORE_ISSUER_ID" \
-            DEVELOPMENT_TEAM="$TEAM_ID" \
-            CODE_SIGN_STYLE=Automatic
+            CODE_SIGN_STYLE=Manual
 
       - name: Exportar .ipa
         run: |
           xcodebuild -exportArchive \
-            -archivePath build/AppVault.xcarchive \
-            -exportPath build/export \
-            -exportOptionsPlist ExportOptions.plist \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/private_keys/AuthKey_${APP_STORE_KEY_ID}.p8 \
-            -authenticationKeyID "$APP_STORE_KEY_ID" \
-            -authenticationKeyIssuerID "$APP_STORE_ISSUER_ID"
+            -archivePath "$RUNNER_TEMP/AppVault.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -exportOptionsPlist "$RUNNER_TEMP/export_options.plist"
 
       - name: Enviar para TestFlight
         run: |
+          mkdir -p ~/private_keys
+          echo "$APP_STORE_KEY_BASE64" | base64 --decode > ~/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8
+          IPA="$(ls "$RUNNER_TEMP"/export/*.ipa | head -1)"
+          echo "Enviando $IPA"
           xcrun altool --upload-app \
             --type ios \
-            --file "$(ls build/export/*.ipa | head -1)" \
-            --apiKey "$APP_STORE_KEY_ID" \
-            --apiIssuer "$APP_STORE_ISSUER_ID"
+            --file "$IPA" \
+            --apiKey "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
 
       - name: Salvar .ipa como artefato
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: AppVault.ipa
-          path: build/export/*.ipa
+          path: ${{ runner.temp }}/export/*.ipa
           if-no-files-found: warn
