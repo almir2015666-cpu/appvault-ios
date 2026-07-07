@@ -38,6 +38,7 @@ struct AppVaultApp: App {
     @StateObject private var lockService = AppLockService.shared
     @StateObject private var authService = AuthService.shared
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -61,6 +62,11 @@ struct AppVaultApp: App {
             .task {
                 await lockService.requestAuthorization()
                 await requestNotificationPermission()
+            }
+            .onChange(of: scenePhase) { newPhase in
+                if newPhase == .active {
+                    lockService.reapplyExpiredShields()
+                }
             }
         }
     }

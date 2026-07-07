@@ -18,6 +18,8 @@ struct LockGroup: Identifiable, Codable {
     var maxAttempts: Int
     // Minutos até pedir a senha novamente após desbloquear. nil = 5 (padrão).
     var unlockMinutes: Int?
+    // Enquanto no futuro, o grupo está temporariamente liberado.
+    var unlockedUntil: Date?
 
     enum LockType: String, Codable, CaseIterable, Identifiable {
         case pin4 = "PIN de 4 Dígitos"

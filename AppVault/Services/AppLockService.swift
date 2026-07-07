@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import FamilyControls
 import ManagedSettings
+import UserNotifications
 
 @MainActor
 final class AppLockService: ObservableObject {
@@ -60,11 +61,30 @@ final class AppLockService: ObservableObject {
     }
 
     func applyShields() {
-        let activeGroups = groups.filter { $0.isActive }
-        let allTokens = activeGroups.reduce(into: Set<ApplicationToken>()) { result, group in
+        let now = Date()
+        // Bloqueia grupos ativos que não estejam em janela de liberação temporária.
+        let shieldingGroups = groups.filter { group in
+            group.isActive && (group.unlockedUntil == nil || group.unlockedUntil! <= now)
+        }
+        let allTokens = shieldingGroups.reduce(into: Set<ApplicationToken>()) { result, group in
             result.formUnion(group.selection.applicationTokens)
         }
         store.shield.applications = allTokens.isEmpty ? nil : allTokens
+    }
+
+    /// Re-bloqueia grupos cuja liberação temporária já expirou. Chamado quando
+    /// o app volta ao primeiro plano.
+    func reapplyExpiredShields() {
+        let now = Date()
+        var changed = false
+        for i in groups.indices where groups[i].unlockedUntil != nil {
+            if groups[i].unlockedUntil! <= now {
+                groups[i].unlockedUntil = nil
+                changed = true
+            }
+        }
+        if changed { saveGroups() }
+        applyShields()
     }
 
     func addGroup(_ group: LockGroup) {
@@ -96,16 +116,31 @@ final class AppLockService: ObservableObject {
 
     func temporarilyUnlock(groupId: UUID) {
         guard let idx = groups.firstIndex(where: { $0.id == groupId }) else { return }
-        let duration = groups[idx].unlockDuration
-        groups[idx].isActive = false
+        let until = Date().addingTimeInterval(groups[idx].unlockDuration)
+        groups[idx].unlockedUntil = until
+        let name = groups[idx].name
         saveGroups()
         applyShields()
-        DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in
-            guard let self, let idx = self.groups.firstIndex(where: { $0.id == groupId }) else { return }
-            self.groups[idx].isActive = true
-            self.saveGroups()
-            self.applyShields()
+        scheduleRelockNotification(groupId: groupId, name: name, at: until)
+        // Enquanto o app seguir vivo, re-bloqueia no horário exato.
+        DispatchQueue.main.asyncAfter(deadline: .now() + groups[idx].unlockDuration + 1) { [weak self] in
+            self?.reapplyExpiredShields()
         }
+    }
+
+    private func scheduleRelockNotification(groupId: UUID, name: String, at date: Date) {
+        let center = UNUserNotificationCenter.current()
+        let id = "relock.\(groupId.uuidString)"
+        center.removePendingNotificationRequests(withIdentifiers: [id])
+
+        let content = UNMutableNotificationContent()
+        content.title = "AppVault"
+        content.body = "Tempo esgotado — \(name) bloqueado novamente."
+        content.sound = .default
+
+        let interval = max(1, date.timeIntervalSinceNow)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
+        center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
     }
 
     func recordFailedAttempt(groupId: UUID) {
