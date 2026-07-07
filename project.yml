@@ -121,7 +121,7 @@ targets:
         CFBundleShortVersionString: "1.0"
         CFBundleVersion: "1"
         NSExtension:
-          NSExtensionPointIdentifier: com.apple.managed-settings.shield.configuration
+          NSExtensionPointIdentifier: com.apple.ManagedSettingsUI.shield-configuration-service
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldConfigurationExtension
     dependencies:
       - sdk: ManagedSettings.framework
@@ -146,7 +146,7 @@ targets:
         CFBundleShortVersionString: "1.0"
         CFBundleVersion: "1"
         NSExtension:
-          NSExtensionPointIdentifier: com.apple.managed-settings.shield.action
+          NSExtensionPointIdentifier: com.apple.ManagedSettings.shield-action-service
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldActionExtension
     dependencies:
       - sdk: ManagedSettings.framework
