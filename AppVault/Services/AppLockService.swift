@@ -94,8 +94,9 @@ final class AppLockService: ObservableObject {
         applyShields()
     }
 
-    func temporarilyUnlock(groupId: UUID, duration: TimeInterval = 300) {
+    func temporarilyUnlock(groupId: UUID) {
         guard let idx = groups.firstIndex(where: { $0.id == groupId }) else { return }
+        let duration = groups[idx].unlockDuration
         groups[idx].isActive = false
         saveGroups()
         applyShields()

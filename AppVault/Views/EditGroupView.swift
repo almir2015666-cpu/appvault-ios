@@ -11,6 +11,7 @@ struct EditGroupView: View {
     @State private var selection = FamilyActivitySelection()
     @State private var showAppPicker = false
     @State private var showChangePinSheet = false
+    @State private var unlockMinutes = 5
     @State private var initialized = false
 
     private var currentGroup: LockGroup? {
@@ -29,6 +30,7 @@ struct EditGroupView: View {
                     VStack(spacing: 24) {
                         nameField
                         appPickerButton
+                        durationPicker
                         changePinButton
                     }
                     .padding(24)
@@ -77,7 +79,38 @@ struct EditGroupView: View {
             guard !initialized, let group = currentGroup else { return }
             groupName = group.name
             selection = group.selection
+            unlockMinutes = group.unlockMinutes ?? 5
             initialized = true
+        }
+    }
+
+    private var durationPicker: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionLabel("Pedir a senha novamente após")
+            HStack(spacing: 8) {
+                ForEach(LockGroup.unlockOptions, id: \.self) { min in
+                    Button {
+                        unlockMinutes = min
+                    } label: {
+                        Text(LockGroup.unlockLabel(min))
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(unlockMinutes == min ? .white : .vaultMuted)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(unlockMinutes == min ? Color.vaultAccent : Color.vaultCard)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(unlockMinutes == min
+                                                    ? Color.vaultAccent
+                                                    : Color.vaultCardBorder, lineWidth: 1.5)
+                                    )
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
     }
 
@@ -197,6 +230,7 @@ struct EditGroupView: View {
                 guard canSave, var group = currentGroup else { return }
                 group.name = groupName.trimmingCharacters(in: .whitespaces)
                 group.selection = selection
+                group.unlockMinutes = unlockMinutes
                 lockService.updateGroup(group)
                 dismiss()
             }

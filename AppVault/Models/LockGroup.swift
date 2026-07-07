@@ -16,6 +16,8 @@ struct LockGroup: Identifiable, Codable {
     var failedAttempts: Int
     var lockedUntil: Date?
     var maxAttempts: Int
+    // Minutos até pedir a senha novamente após desbloquear. nil = 5 (padrão).
+    var unlockMinutes: Int?
 
     enum LockType: String, Codable, CaseIterable, Identifiable {
         case pin4 = "PIN de 4 Dígitos"
@@ -53,6 +55,14 @@ struct LockGroup: Identifiable, Codable {
     var isLocked: Bool {
         guard let until = lockedUntil else { return false }
         return Date() < until
+    }
+
+    var unlockDuration: TimeInterval { TimeInterval((unlockMinutes ?? 5) * 60) }
+
+    static let unlockOptions: [Int] = [1, 5, 15, 30, 60]
+
+    static func unlockLabel(_ minutes: Int) -> String {
+        minutes < 60 ? "\(minutes) min" : "\(minutes / 60) h"
     }
 }
 

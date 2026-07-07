@@ -5,54 +5,57 @@ struct QuickUnlockView: View {
     @EnvironmentObject var authService: AuthService
 
     @State private var selectedGroupId: UUID?
-    @State private var showingPinEntry = false
 
     private var activeGroups: [LockGroup] {
         lockService.groups.filter { $0.isActive }
+    }
+
+    private var selectedGroup: LockGroup? {
+        guard let id = selectedGroupId else { return nil }
+        return lockService.groups.first { $0.id == id }
     }
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.vaultBackground.ignoresSafeArea()
-                if activeGroups.isEmpty {
+                if let group = selectedGroup {
+                    // PIN mostrado inline (sem sheet aninhada, que o iOS engolia)
+                    PinEntryView(
+                        group: group,
+                        onSuccess: {
+                            lockService.temporarilyUnlock(groupId: group.id)
+                            lockService.showingUnlockFromShield = false
+                        },
+                        onCancel: {
+                            if activeGroups.count <= 1 {
+                                lockService.showingUnlockFromShield = false
+                            } else {
+                                selectedGroupId = nil
+                            }
+                        }
+                    )
+                    .environmentObject(lockService)
+                    .environmentObject(authService)
+                } else if activeGroups.isEmpty {
                     emptyState
                 } else {
                     groupList
                 }
             }
-            .navigationTitle("Desbloquear App")
+            .navigationTitle(selectedGroup == nil ? "Desbloquear App" : "")
             .navigationBarTitleDisplayMode(.inline)
-            .onAppear {
-                // Só há um grupo bloqueando? Vai direto pra senha, sem lista.
-                if selectedGroupId == nil, activeGroups.count == 1, let only = activeGroups.first {
-                    selectedGroupId = only.id
-                    showingPinEntry = true
-                }
-            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Fechar") { lockService.showingUnlockFromShield = false }
                         .foregroundColor(.vaultMuted)
                 }
             }
-        }
-        .sheet(isPresented: $showingPinEntry) {
-            if let id = selectedGroupId,
-               let group = lockService.groups.first(where: { $0.id == id }) {
-                PinEntryView(
-                    group: group,
-                    onSuccess: {
-                        lockService.temporarilyUnlock(groupId: id)
-                        lockService.showingUnlockFromShield = false
-                    },
-                    onCancel: {
-                        showingPinEntry = false
-                        selectedGroupId = nil
-                    }
-                )
-                .environmentObject(lockService)
-                .environmentObject(authService)
+            .onAppear {
+                // Um único grupo ativo? Vai direto pra senha.
+                if selectedGroupId == nil, activeGroups.count == 1 {
+                    selectedGroupId = activeGroups.first?.id
+                }
             }
         }
     }
@@ -72,10 +75,7 @@ struct QuickUnlockView: View {
                         LockGroupCard(
                             group: group,
                             onToggle: {},
-                            onTap: {
-                                selectedGroupId = group.id
-                                showingPinEntry = true
-                            }
+                            onTap: { selectedGroupId = group.id }
                         )
                         .padding(.horizontal, 20)
                     }
