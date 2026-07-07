@@ -22,6 +22,7 @@ targets:
       - path: AppVault
         excludes:
           - "**/*.entitlements"
+      - path: Shared
     info:
       path: AppVault/Info.plist
       properties:
@@ -97,9 +98,12 @@ targets:
     dependencies:
       - sdk: FamilyControls.framework
       - sdk: ManagedSettings.framework
+      - sdk: DeviceActivity.framework
       - target: ShieldConfigurationExtension
         embed: true
       - target: ShieldActionExtension
+        embed: true
+      - target: DeviceActivityMonitorExtension
         embed: true
     settings:
       base:
@@ -154,5 +158,38 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.appvault.app.ShieldActionExtension
+        CODE_SIGN_STYLE: Manual
+        ENABLE_BITCODE: "NO"
+
+  DeviceActivityMonitorExtension:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: DeviceActivityMonitor
+      - path: Shared
+    info:
+      path: DeviceActivityMonitor/DeviceActivityMonitor-Info.plist
+      properties:
+        CFBundleDisplayName: DeviceActivityMonitor
+        CFBundleIdentifier: com.appvault.app.DeviceActivityMonitor
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.deviceactivity.monitor-extension
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).AppVaultDeviceActivityMonitor
+    dependencies:
+      - sdk: DeviceActivity.framework
+      - sdk: ManagedSettings.framework
+      - sdk: FamilyControls.framework
+    entitlements:
+      path: DeviceActivityMonitor/DeviceActivityMonitor.entitlements
+      properties:
+        com.apple.developer.family-controls: true
+        keychain-access-groups:
+          - $(AppIdentifierPrefix)com.appvault.app
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.appvault.app.DeviceActivityMonitor
         CODE_SIGN_STYLE: Manual
         ENABLE_BITCODE: "NO"

@@ -45,6 +45,7 @@ jobs:
       PROFILE_APP_BASE64: ${{ secrets.PROFILE_APP_BASE64 }}
       PROFILE_SHIELD_CONFIG_BASE64: ${{ secrets.PROFILE_SHIELD_CONFIG_BASE64 }}
       PROFILE_SHIELD_ACTION_BASE64: ${{ secrets.PROFILE_SHIELD_ACTION_BASE64 }}
+      PROFILE_MONITOR_BASE64: ${{ secrets.PROFILE_MONITOR_BASE64 }}
       APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_ISSUER_ID }}
       APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_KEY_ID }}
       APP_STORE_KEY_BASE64: ${{ secrets.APP_STORE_KEY_BASE64 }}
@@ -55,7 +56,7 @@ jobs:
         run: |
           missing=""
           for v in CERTIFICATE_BASE64 CERTIFICATE_PASSWORD PROFILE_APP_BASE64 \
-                   PROFILE_SHIELD_CONFIG_BASE64 PROFILE_SHIELD_ACTION_BASE64 \
+                   PROFILE_SHIELD_CONFIG_BASE64 PROFILE_SHIELD_ACTION_BASE64 PROFILE_MONITOR_BASE64 \
                    APP_STORE_CONNECT_ISSUER_ID APP_STORE_CONNECT_KEY_IDENTIFIER APP_STORE_KEY_BASE64; do
             eval "val=\${$v}"
             [ -z "$val" ] && missing="$missing $v"
@@ -81,7 +82,8 @@ jobs:
           for plist in \
             AppVault/Info.plist \
             ShieldExtension/ShieldConfigurationExtension-Info.plist \
-            ShieldExtension/ShieldActionExtension-Info.plist; do
+            ShieldExtension/ShieldActionExtension-Info.plist \
+            DeviceActivityMonitor/DeviceActivityMonitor-Info.plist; do
             /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" "$plist"
           done
 
@@ -99,6 +101,7 @@ jobs:
           echo "$PROFILE_APP_BASE64"          | base64 --decode > "$PROFILES_HOME/appvault_app.mobileprovision"
           echo "$PROFILE_SHIELD_CONFIG_BASE64" | base64 --decode > "$PROFILES_HOME/appvault_shield_config.mobileprovision"
           echo "$PROFILE_SHIELD_ACTION_BASE64" | base64 --decode > "$PROFILES_HOME/appvault_shield_action.mobileprovision"
+          echo "$PROFILE_MONITOR_BASE64"        | base64 --decode > "$PROFILES_HOME/appvault_monitor.mobileprovision"
 
           # Configura os targets do projeto (specifier + identidade) a partir dos perfis instalados
           xcode-project use-profiles \

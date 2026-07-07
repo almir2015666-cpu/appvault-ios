@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import FamilyControls
 import ManagedSettings
+import DeviceActivity
 import UserNotifications
 
 @MainActor
@@ -16,6 +17,7 @@ final class AppLockService: ObservableObject {
 
     private let saveKey = "appvault_lock_groups_v2"
     private let store = ManagedSettingsStore()
+    private let activityCenter = DeviceActivityCenter()
 
     private init() {
         loadGroups()
@@ -121,11 +123,26 @@ final class AppLockService: ObservableObject {
         let name = groups[idx].name
         saveGroups()
         applyShields()
+        // Guarda os tokens pro monitor re-aplicar em background e agenda o fim.
+        SharedShieldStore.saveTokens(groups[idx].selection.applicationTokens, groupId: groupId.uuidString)
+        scheduleBackgroundRelock(groupId: groupId, until: until)
         scheduleRelockNotification(groupId: groupId, name: name, at: until)
         // Enquanto o app seguir vivo, re-bloqueia no horário exato.
         DispatchQueue.main.asyncAfter(deadline: .now() + groups[idx].unlockDuration + 1) { [weak self] in
             self?.reapplyExpiredShields()
         }
+    }
+
+    // Re-bloqueio automático em background via DeviceActivityMonitor.
+    // O iOS exige janela de no mínimo 15 min; abaixo disso, o re-bloqueio
+    // fica por conta do primeiro plano + notificação.
+    private func scheduleBackgroundRelock(groupId: UUID, until: Date) {
+        guard until.timeIntervalSinceNow >= 15 * 60 else { return }
+        let cal = Calendar.current
+        let start = cal.dateComponents([.hour, .minute, .second], from: Date())
+        let end = cal.dateComponents([.hour, .minute, .second], from: until)
+        let schedule = DeviceActivitySchedule(intervalStart: start, intervalEnd: end, repeats: false)
+        try? activityCenter.startMonitoring(DeviceActivityName(groupId.uuidString), during: schedule)
     }
 
     private func scheduleRelockNotification(groupId: UUID, name: String, at date: Date) {
