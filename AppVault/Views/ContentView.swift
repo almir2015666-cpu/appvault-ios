@@ -34,6 +34,8 @@ struct ContentView: View {
         .onAppear { configureTabBar() }
         .sheet(isPresented: $lockService.showingUnlockFromShield) {
             QuickUnlockView()
+                .environmentObject(lockService)
+                .environmentObject(authService)
         }
     }
 

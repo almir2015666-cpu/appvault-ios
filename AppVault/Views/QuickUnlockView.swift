@@ -23,6 +23,13 @@ struct QuickUnlockView: View {
             }
             .navigationTitle("Desbloquear App")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                // Só há um grupo bloqueando? Vai direto pra senha, sem lista.
+                if selectedGroupId == nil, activeGroups.count == 1, let only = activeGroups.first {
+                    selectedGroupId = only.id
+                    showingPinEntry = true
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Fechar") { lockService.showingUnlockFromShield = false }
