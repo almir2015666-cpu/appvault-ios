@@ -95,7 +95,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 
-pem = private_key_pem.strip()
+pem = private_key_pem.strip().replace('\\n', '\n')
 if not pem.startswith('-----'):
     import textwrap
     pem = '-----BEGIN PRIVATE KEY-----\n' + '\n'.join(textwrap.wrap(pem, 64)) + '\n-----END PRIVATE KEY-----'
