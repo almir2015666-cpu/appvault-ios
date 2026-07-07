@@ -94,6 +94,9 @@ workflows:
 
       - name: Build e Archive
         script: |
+          echo "=== CONTEUDO DE AppVault.entitlements ==="
+          cat AppVault/AppVault.entitlements
+
           xcodebuild \
             -project AppVault.xcodeproj \
             -scheme "$XCODE_SCHEME" \
@@ -103,11 +106,14 @@ workflows:
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
+            CODE_SIGN_ENTITLEMENTS="AppVault/AppVault.entitlements" \
             archive
 
       - name: Verificar entitlements do binario
         script: |
           APP_PATH=$(find build/AppVault.xcarchive -name "AppVault.app" -not -path "*.dSYM*" -type d | head -1)
+          echo "=== XCENT GERADO ==="
+          find build/AppVault.xcarchive -name "*.xcent" 2>/dev/null | head -3 | xargs -I{} plutil -p {} 2>/dev/null || true
           echo "=== ENTITLEMENTS NO BINARIO ASSINADO ==="
           codesign -d --entitlements :/tmp/_binary.ents "$APP_PATH" 2>/dev/null || true
           plutil -p /tmp/_binary.ents 2>/dev/null || true
