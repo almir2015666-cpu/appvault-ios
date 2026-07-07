@@ -53,10 +53,6 @@ workflows:
 
             if [ -n "$MAIN_BUNDLE_RES_ID" ]; then
               echo "Bundle ID resource: $MAIN_BUNDLE_RES_ID"
-              echo "=== Capabilities atuais no bundle ID ==="
-              app-store-connect bundle-ids capabilities "$MAIN_BUNDLE_RES_ID" --json 2>/dev/null | \
-                python3 -c "import json,sys; raw=sys.stdin.read(); d=json.loads(raw) if raw.strip() else []; [print(' -', x.get('attributes',{}).get('capabilityType','?')) for x in d]" 2>/dev/null || true
-              echo "Ativando App Groups..."
               app-store-connect bundle-ids enable-capabilities "$MAIN_BUNDLE_RES_ID" --capability "App Groups" 2>&1 || true
             fi
 
@@ -77,13 +73,6 @@ workflows:
               --certificates-dir ~/Library/MobileDevice/Certificates/
           fi
 
-          echo "=== ENTITLEMENTS COMPLETOS DO PROFILE ==="
-          for f in "$XCODE_PROFILES"/*.mobileprovision "$PROFILES_DIR"/*.mobileprovision; do
-            [ -f "$f" ] || continue
-            security cms -D -i "$f" 2>/dev/null > /tmp/_pf.plist
-            python3 -c "import plistlib; e=plistlib.load(open('/tmp/_pf.plist','rb')).get('Entitlements',{}); bid=e.get('application-identifier',''); [print('Bundle:',bid,[f'{k}={v}' for k,v in e.items()]) for _ in [1] if 'appvault.app' in bid and 'Extension' not in bid]" 2>/dev/null || true
-          done
-
           keychain add-certificates --certificate-password "appvault2024"
 
       - name: Configurar assinatura
@@ -94,9 +83,6 @@ workflows:
 
       - name: Build e Archive
         script: |
-          echo "=== CONTEUDO DE AppVault.entitlements ==="
-          cat AppVault/AppVault.entitlements
-
           xcodebuild \
             -project AppVault.xcodeproj \
             -scheme "$XCODE_SCHEME" \
@@ -108,15 +94,6 @@ workflows:
             CODE_SIGN_IDENTITY="Apple Distribution" \
             CODE_SIGN_ENTITLEMENTS="AppVault/AppVault.entitlements" \
             archive
-
-      - name: Verificar entitlements do binario
-        script: |
-          APP_PATH=$(find build/AppVault.xcarchive -name "AppVault.app" -not -path "*.dSYM*" -type d | head -1)
-          echo "=== XCENT GERADO ==="
-          find build/AppVault.xcarchive -name "*.xcent" 2>/dev/null | head -3 | xargs -I{} plutil -p {} 2>/dev/null || true
-          echo "=== ENTITLEMENTS NO BINARIO ASSINADO ==="
-          codesign -d --entitlements :/tmp/_binary.ents "$APP_PATH" 2>/dev/null || true
-          plutil -p /tmp/_binary.ents 2>/dev/null || true
 
       - name: Exportar .ipa
         script: |
