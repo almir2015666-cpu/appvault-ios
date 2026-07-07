@@ -91,8 +91,6 @@ targets:
       path: AppVault/AppVault.entitlements
       properties:
         com.apple.developer.family-controls: true
-        com.apple.security.application-groups:
-          - group.com.appvault.shared
         keychain-access-groups:
           - $(AppIdentifierPrefix)com.appvault.app
     dependencies:
