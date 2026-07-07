@@ -13,10 +13,10 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
                 .withTintColor(accent, renderingMode: .alwaysOriginal),
             title: ShieldConfiguration.Label(text: "App Bloqueado", color: .label),
             subtitle: ShieldConfiguration.Label(
-                text: "Abra o AppVault para desbloquear",
+                text: "Toque em Desbloquear para inserir sua senha",
                 color: .secondaryLabel
             ),
-            primaryButtonLabel: ShieldConfiguration.Label(text: "Fechar", color: .white),
+            primaryButtonLabel: ShieldConfiguration.Label(text: "Desbloquear", color: .white),
             primaryButtonBackgroundColor: accent
         )
     }
