@@ -40,36 +40,35 @@ workflows:
 
           PROFILES_DIR=~/Library/MobileDevice/Provisioning\ Profiles
 
+          XCODE_PROFILES="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+
           if [ -n "$PROVISIONING_PROFILE_BASE64" ]; then
             echo "Instalando provisioning profile manual..."
             echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PROFILES_DIR/AppVault_AppStore.mobileprovision"
           else
-            # Ativar capabilities no bundle ID antes de criar o profile
-            BUNDLE_RES_ID=$(app-store-connect bundle-ids list \
+            # Obter resource IDs de todos os bundle IDs do app
+            ALL_BUNDLE_RES_IDS=$(app-store-connect bundle-ids list \
               --bundle-id-identifier "$BUNDLE_ID" \
               --json 2>/dev/null | \
-              python3 -c "import json,sys; d=json.load(sys.stdin); print(d[0]['id'] if d else '')" 2>/dev/null || echo "")
+              python3 -c "import json,sys; [print(x['id']) for x in json.load(sys.stdin)]" 2>/dev/null || true)
 
-            if [ -n "$BUNDLE_RES_ID" ]; then
-              echo "Bundle ID resource: $BUNDLE_RES_ID"
+            MAIN_BUNDLE_RES_ID=$(echo "$ALL_BUNDLE_RES_IDS" | head -1)
+
+            if [ -n "$MAIN_BUNDLE_RES_ID" ]; then
+              echo "Bundle ID resource: $MAIN_BUNDLE_RES_ID"
               echo "Ativando FAMILY_CONTROLS..."
-              app-store-connect bundle-ids enable-capability \
-                --bundle-id-resource-id "$BUNDLE_RES_ID" \
-                --capability-type FAMILY_CONTROLS 2>&1 || true
-              echo "Ativando APP_GROUPS..."
-              app-store-connect bundle-ids enable-capability \
-                --bundle-id-resource-id "$BUNDLE_RES_ID" \
-                --capability-type APP_GROUPS 2>&1 || true
+              app-store-connect bundle-ids enable-capabilities "$MAIN_BUNDLE_RES_ID" FAMILY_CONTROLS 2>&1 || true
             fi
 
-            # Deletar todos os profiles existentes e criar um novo
-            for pid in $(app-store-connect profiles list \
-              --bundle-id-identifier "$BUNDLE_ID" \
-              --profile-type IOS_APP_STORE \
-              --json 2>/dev/null | \
-              python3 -c "import json,sys; [print(x['id']) for x in json.load(sys.stdin)]" 2>/dev/null || true); do
-              echo "Deletando perfil $pid"
-              app-store-connect profiles delete "$pid" 2>/dev/null || true
+            # Deletar todos os profiles existentes via bundle ID resource IDs
+            for brid in $ALL_BUNDLE_RES_IDS; do
+              for pid in $(app-store-connect bundle-ids profiles "$brid" \
+                --profile-type IOS_APP_STORE \
+                --json 2>/dev/null | \
+                python3 -c "import json,sys; [print(x['id']) for x in json.load(sys.stdin)]" 2>/dev/null || true); do
+                echo "Deletando perfil $pid (bundle: $brid)"
+                app-store-connect profiles delete "$pid" 2>/dev/null || true
+              done
             done
 
             app-store-connect fetch-signing-files "$BUNDLE_ID" \
@@ -79,11 +78,11 @@ workflows:
               --certificates-dir ~/Library/MobileDevice/Certificates/
           fi
 
-          # Verificar e mostrar entitlements do profile resultante
+          # Verificar entitlements no profile do app principal
           echo "=== ENTITLEMENTS DO PROFILE ==="
-          for f in "$PROFILES_DIR"/*.mobileprovision; do
+          for f in "$XCODE_PROFILES"/*.mobileprovision; do
             [ -f "$f" ] || continue
-            security cms -D -i "$f" 2>/dev/null | python3 -c "import plistlib,sys; d=plistlib.loads(sys.stdin.buffer.read()); ents=d.get('Entitlements',{}); fc='com.apple.developer.family-controls'; print('family-controls no profile:', fc in ents); [print(' ',k) for k in sorted(ents.keys())]"
+            security cms -D -i "$f" 2>/dev/null | python3 -c "import plistlib,sys; d=plistlib.loads(sys.stdin.buffer.read()); ents=d.get('Entitlements',{}); bid=ents.get('application-identifier',''); fc='com.apple.developer.family-controls'; print(bid,'→ family-controls:', fc in ents) if 'appvault.app' in bid and 'Extension' not in bid else None"
           done
 
           keychain add-certificates --certificate-password "appvault2024"
