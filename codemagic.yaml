@@ -77,29 +77,81 @@ workflows:
               python3 -c "import json,sys; d=json.load(sys.stdin); print(d[0]['id'] if d else '')" 2>/dev/null || true)
 
             ALL_BUNDLE_RES_IDS="$ALL_BUNDLE_RES_IDS $CONFIG_RES_ID $ACTION_RES_ID"
+            export CONFIG_RES_ID ACTION_RES_ID
 
-            # Debug: descobrir comandos e vars disponiveis
-            echo "=== DEBUG env ASC ==="
-            env | grep -iE 'APP_STORE|ASC_|APPLE_KEY|ISSUER|KEY_ID' | sed 's/=.*/=***/' || true
-            echo "=== DEBUG app-store-connect subcommands ==="
-            app-store-connect --help 2>&1 | head -40 || true
-            echo "=== DEBUG JWT via log-api-calls ==="
-            JWT=$(app-store-connect bundle-ids list --bundle-id-identifier "$BUNDLE_ID" --log-api-calls 2>&1 | grep -oE 'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+' | head -1 || true)
-            echo "JWT obtido: $([ -n "$JWT" ] && echo SIM || echo NAO)"
-            echo "=== FIM DEBUG ==="
+            # Usar Python + credenciais do env para gerar JWT e chamar API diretamente
+            python3 << 'PYEOF'
+import os, time, json, base64, urllib.request, urllib.error
 
-            # Deletar profiles das extensions diretamente por bundle-id-identifier
-            for EXT_BID in "com.appvault.app.ShieldConfigurationExtension" "com.appvault.app.ShieldActionExtension"; do
-              EXT_PIDS=$(app-store-connect bundle-ids list --bundle-id-identifier "$EXT_BID" --json 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print(d[0]['id'] if d else '')" 2>/dev/null || true)
-              if [ -n "$EXT_PIDS" ]; then
-                for brid in $EXT_PIDS; do
-                  for pid in $(app-store-connect bundle-ids profiles "$brid" --json 2>/dev/null | python3 -c "import json,sys; [print(p.get('id','')) for p in json.load(sys.stdin)]" 2>/dev/null || true); do
-                    echo "Deletando profile $EXT_BID: $pid"
-                    app-store-connect profiles delete "$pid" 2>&1 || true
-                  done
-                done
-              fi
-            done
+issuer_id = os.environ.get('APP_STORE_CONNECT_ISSUER_ID','')
+key_id = os.environ.get('APP_STORE_CONNECT_KEY_IDENTIFIER','')
+private_key_pem = os.environ.get('APP_STORE_CONNECT_PRIVATE_KEY','')
+
+if not all([issuer_id, key_id, private_key_pem]):
+    print("Credenciais ASC nao encontradas, pulando")
+    exit(0)
+
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
+
+pem = private_key_pem.strip()
+if not pem.startswith('-----'):
+    import textwrap
+    pem = '-----BEGIN PRIVATE KEY-----\n' + '\n'.join(textwrap.wrap(pem, 64)) + '\n-----END PRIVATE KEY-----'
+
+private_key = serialization.load_pem_private_key(pem.encode(), password=None)
+now = int(time.time())
+hdr = base64.urlsafe_b64encode(json.dumps({"alg":"ES256","kid":key_id,"typ":"JWT"}).encode()).rstrip(b'=').decode()
+pld = base64.urlsafe_b64encode(json.dumps({"iss":issuer_id,"iat":now,"exp":now+1200,"aud":"appstoreconnect-v1"}).encode()).rstrip(b'=').decode()
+msg = f"{hdr}.{pld}".encode()
+sig_der = private_key.sign(msg, ec.ECDSA(hashes.SHA256()))
+r, s = decode_dss_signature(sig_der)
+sig = base64.urlsafe_b64encode(r.to_bytes(32,'big') + s.to_bytes(32,'big')).rstrip(b'=').decode()
+jwt = f"{hdr}.{pld}.{sig}"
+
+ext_ids = [i for i in [os.environ.get('CONFIG_RES_ID',''), os.environ.get('ACTION_RES_ID','')] if i]
+# Tentar obter de env vars alternativas
+import subprocess
+for var,bid in [('CONFIG_RES_ID','com.appvault.app.ShieldConfigurationExtension'),('ACTION_RES_ID','com.appvault.app.ShieldActionExtension')]:
+    val = os.environ.get(var,'')
+    if not val:
+        try:
+            r2 = subprocess.run(['app-store-connect','bundle-ids','list','--bundle-id-identifier',bid,'--json'], capture_output=True, text=True)
+            d = json.loads(r2.stdout)
+            if d: val = d[0]['id']
+        except: pass
+    if val and val not in ext_ids:
+        ext_ids.append(val)
+
+headers = {'Authorization': f'Bearer {jwt}', 'Content-Type': 'application/json'}
+
+for res_id in ext_ids:
+    if not res_id: continue
+    # 1. Habilitar Family Controls
+    body = json.dumps({"data":{"type":"bundleIdCapabilities","attributes":{"capabilityType":"FAMILY_CONTROLS","settings":[]},"relationships":{"bundleId":{"data":{"type":"bundleIds","id":res_id}}}}}).encode()
+    req = urllib.request.Request('https://api.appstoreconnect.apple.com/v1/bundleIdCapabilities', data=body, headers=headers, method='POST')
+    try:
+        with urllib.request.urlopen(req) as resp:
+            print(f"Family Controls habilitado para {res_id}: {resp.status}")
+    except urllib.error.HTTPError as e:
+        print(f"Family Controls {res_id}: {e.code} {e.read().decode()[:200]}")
+
+    # 2. Deletar profiles existentes para este bundle ID
+    url = f'https://api.appstoreconnect.apple.com/v1/bundleIds/{res_id}/profiles?filter[profileType]=IOS_APP_STORE&limit=20'
+    req2 = urllib.request.Request(url, headers={'Authorization': f'Bearer {jwt}'})
+    try:
+        with urllib.request.urlopen(req2) as resp2:
+            pdata = json.loads(resp2.read())
+            for p in pdata.get('data',[]):
+                pid = p['id']
+                del_req = urllib.request.Request(f'https://api.appstoreconnect.apple.com/v1/profiles/{pid}', headers={'Authorization': f'Bearer {jwt}'}, method='DELETE')
+                try:
+                    with urllib.request.urlopen(del_req) as dr: print(f"Profile {pid} deletado para {res_id}: {dr.status}")
+                except urllib.error.HTTPError as e2: print(f"Delete {pid}: {e2.code}")
+    except urllib.error.HTTPError as e3:
+        print(f"Listar profiles {res_id}: {e3.code} {e3.read().decode()[:200]}")
+PYEOF
 
             # Deletar todos os profiles appvault via bundle-ids profiles (loop principal)
             for brid in $ALL_BUNDLE_RES_IDS; do
