@@ -126,6 +126,10 @@ targets:
     dependencies:
       - sdk: ManagedSettings.framework
       - sdk: ManagedSettingsUI.framework
+    entitlements:
+      path: ShieldExtension/ShieldConfigurationExtension.entitlements
+      properties:
+        com.apple.developer.family-controls: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.appvault.app.ShieldConfigurationExtension
@@ -150,6 +154,10 @@ targets:
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldActionExtension
     dependencies:
       - sdk: ManagedSettings.framework
+    entitlements:
+      path: ShieldExtension/ShieldActionExtension.entitlements
+      properties:
+        com.apple.developer.family-controls: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.appvault.app.ShieldActionExtension

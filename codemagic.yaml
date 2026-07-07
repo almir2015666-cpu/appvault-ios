@@ -67,15 +67,24 @@ workflows:
               --platform IOS 2>/dev/null || true
 
             # Obter resource IDs das extensoes
-            CONFIG_RES_IDS=$(app-store-connect bundle-ids list \
+            CONFIG_RES_ID=$(app-store-connect bundle-ids list \
               --bundle-id-identifier "com.appvault.app.ShieldConfigurationExtension" \
               --json 2>/dev/null | \
-              python3 -c "import json,sys; [print(x['id']) for x in json.load(sys.stdin)]" 2>/dev/null || true)
-            ACTION_RES_IDS=$(app-store-connect bundle-ids list \
+              python3 -c "import json,sys; d=json.load(sys.stdin); print(d[0]['id'] if d else '')" 2>/dev/null || true)
+            ACTION_RES_ID=$(app-store-connect bundle-ids list \
               --bundle-id-identifier "com.appvault.app.ShieldActionExtension" \
               --json 2>/dev/null | \
-              python3 -c "import json,sys; [print(x['id']) for x in json.load(sys.stdin)]" 2>/dev/null || true)
-            ALL_BUNDLE_RES_IDS="$ALL_BUNDLE_RES_IDS $CONFIG_RES_IDS $ACTION_RES_IDS"
+              python3 -c "import json,sys; d=json.load(sys.stdin); print(d[0]['id'] if d else '')" 2>/dev/null || true)
+
+            # Habilitar Family Controls nas extensions (necessario para NSExtensionPointIdentifier do Screen Time)
+            if [ -n "$CONFIG_RES_ID" ]; then
+              app-store-connect bundle-ids enable-capabilities "$CONFIG_RES_ID" --capability "FAMILY_CONTROLS" 2>&1 || true
+            fi
+            if [ -n "$ACTION_RES_ID" ]; then
+              app-store-connect bundle-ids enable-capabilities "$ACTION_RES_ID" --capability "FAMILY_CONTROLS" 2>&1 || true
+            fi
+
+            ALL_BUNDLE_RES_IDS="$ALL_BUNDLE_RES_IDS $CONFIG_RES_ID $ACTION_RES_ID"
 
             for brid in $ALL_BUNDLE_RES_IDS; do
               for pid in $(app-store-connect bundle-ids profiles "$brid" \
