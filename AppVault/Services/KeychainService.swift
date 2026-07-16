@@ -43,6 +43,16 @@ final class KeychainService {
         return inputHash == storedHash
     }
 
+    func hasPin(forGroupId id: UUID) -> Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: id.uuidString,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+        ]
+        return SecItemCopyMatching(query as CFDictionary, nil) == errSecSuccess
+    }
+
     func deletePin(forGroupId id: UUID) {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,

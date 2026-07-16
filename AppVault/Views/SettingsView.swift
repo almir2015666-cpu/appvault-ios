@@ -6,6 +6,8 @@ struct SettingsView: View {
     @AppStorage("hasCompletedOnboarding") private var done = true
     @AppStorage("defaultUnlockDuration") private var duration = 5.0
     @State private var confirmDelete = false
+    @State private var appLockOn = AppLockGuard.shared.isEnabled
+    @State private var showSetAppPin = false
 
     var body: some View {
         NavigationStack {
@@ -21,6 +23,12 @@ struct SettingsView: View {
                                     Text(authService.isBiometricAvailable ? "Disponível" : "Indisponível")
                                         .font(.system(size: 12)).foregroundColor(authService.isBiometricAvailable ? .vaultGreen : .vaultMuted)
                                 }
+                            }
+                            separator
+                            row(icon: "lock.fill", color: .vaultPurple, title: "Proteger o AppVault") {
+                                Toggle("", isOn: $appLockOn)
+                                    .labelsHidden()
+                                    .tint(.vaultAccent)
                             }
                         }
                         group("COMPORTAMENTO") {
@@ -59,6 +67,32 @@ struct SettingsView: View {
             Button("Apagar", role: .destructive) { lockService.groups.forEach { lockService.deleteGroup($0) } }
         } message: {
             Text("Todos os grupos e senhas serão removidos permanentemente.")
+        }
+        .onChange(of: appLockOn) { on in
+            if on {
+                if !AppLockGuard.shared.hasPin { showSetAppPin = true }
+            } else {
+                AppLockGuard.shared.disable()
+            }
+        }
+        .sheet(isPresented: $showSetAppPin) {
+            NavigationStack {
+                PinSetupView(
+                    groupName: "AppVault",
+                    lockType: .pin4,
+                    onComplete: { pin in
+                        AppLockGuard.shared.enable(pin: pin)
+                        appLockOn = true
+                        showSetAppPin = false
+                    },
+                    onBack: {
+                        showSetAppPin = false
+                        appLockOn = AppLockGuard.shared.isEnabled
+                    }
+                )
+                .navigationTitle("Senha do AppVault")
+                .navigationBarTitleDisplayMode(.inline)
+            }
         }
     }
 

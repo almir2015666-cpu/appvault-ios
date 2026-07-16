@@ -37,20 +37,30 @@ struct AppVaultApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var lockService = AppLockService.shared
     @StateObject private var authService = AuthService.shared
+    @StateObject private var gate = AppLockGuard.shared
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                if hasCompletedOnboarding {
-                    ContentView()
-                        .environmentObject(lockService)
+            ZStack {
+                Group {
+                    if hasCompletedOnboarding {
+                        ContentView()
+                            .environmentObject(lockService)
+                            .environmentObject(authService)
+                    } else {
+                        OnboardingView()
+                            .environmentObject(lockService)
+                            .environmentObject(authService)
+                    }
+                }
+
+                if gate.isLocked {
+                    AppLockScreen()
                         .environmentObject(authService)
-                } else {
-                    OnboardingView()
-                        .environmentObject(lockService)
-                        .environmentObject(authService)
+                        .transition(.opacity)
+                        .zIndex(1)
                 }
             }
             .onOpenURL { url in
@@ -66,6 +76,8 @@ struct AppVaultApp: App {
             .onChange(of: scenePhase) { newPhase in
                 if newPhase == .active {
                     lockService.reapplyExpiredShields()
+                } else if newPhase == .background {
+                    gate.lockIfNeeded()
                 }
             }
         }
