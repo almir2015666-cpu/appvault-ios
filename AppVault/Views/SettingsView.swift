@@ -5,6 +5,7 @@ struct SettingsView: View {
     @EnvironmentObject var authService: AuthService
     @AppStorage("hasCompletedOnboarding") private var done = true
     @AppStorage("defaultUnlockDuration") private var duration = 5.0
+    @AppStorage("lockoutMinutes") private var lockoutMin = 15
     @State private var confirmDelete = false
     @State private var appLockOn = AppLockGuard.shared.isEnabled
     @State private var showSetAppPin = false
@@ -38,6 +39,15 @@ struct SettingsView: View {
                                     Text("5 min").tag(5.0)
                                     Text("15 min").tag(15.0)
                                     Text("30 min").tag(30.0)
+                                }.tint(.vaultMuted)
+                            }
+                            separator
+                            row(icon: "hand.raised.fill", color: .vaultRed, title: "Bloqueio após erros") {
+                                Picker("", selection: $lockoutMin) {
+                                    Text("5 min").tag(5)
+                                    Text("15 min").tag(15)
+                                    Text("30 min").tag(30)
+                                    Text("1 h").tag(60)
                                 }.tint(.vaultMuted)
                             }
                         }

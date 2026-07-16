@@ -160,13 +160,29 @@ final class AppLockService: ObservableObject {
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
     }
 
+    // Duração do bloqueio de tentativas após esgotar os erros (configurável).
+    var lockoutDuration: TimeInterval {
+        let mins = UserDefaults.standard.integer(forKey: "lockoutMinutes")
+        return TimeInterval((mins == 0 ? 15 : mins) * 60)
+    }
+
     func recordFailedAttempt(groupId: UUID) {
         guard let idx = groups.firstIndex(where: { $0.id == groupId }) else { return }
         groups[idx].failedAttempts += 1
         if groups[idx].failedAttempts >= groups[idx].maxAttempts {
-            groups[idx].lockedUntil = Date().addingTimeInterval(300)
+            groups[idx].lockedUntil = Date().addingTimeInterval(lockoutDuration)
         }
+        // Errou a senha -> re-bloqueia tudo na hora.
+        relockAllGroups()
         saveGroups()
+    }
+
+    /// Cancela todas as liberações temporárias e re-aplica o bloqueio de tudo.
+    func relockAllGroups() {
+        for i in groups.indices { groups[i].unlockedUntil = nil }
+        activityCenter.stopMonitoring()
+        saveGroups()
+        applyShields()
     }
 
     func resetFailedAttempts(groupId: UUID) {
